@@ -1,0 +1,6 @@
+edge_id,access,structure,simulable,quality_flags
+oisans-normal-01,admissible,normal,True,
+oisans-hairpin-02,review,normal,True,
+oisans-bridge-review,review,bridge,False,roadway_elevation_unknown
+oisans-tunnel-review,review,tunnel,False,roadway_elevation_unknown
+oisans-stacked-review,review,stacked,False,roadway_elevation_unknown

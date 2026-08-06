@@ -1,0 +1,4 @@
+edge_id,structure,reason
+oisans-bridge-review,bridge,roadway elevation unavailable; terrain DEM forbidden
+oisans-tunnel-review,tunnel,roadway elevation unavailable; terrain DEM forbidden
+oisans-stacked-review,stacked,roadway elevation unavailable; terrain DEM forbidden

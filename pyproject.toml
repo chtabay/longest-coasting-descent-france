@@ -8,10 +8,7 @@ version = "0.1.0"
 description = "Reference study for the longest bicycle coasting descent in France"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = [
-  "numpy",
-  "matplotlib",
-]
+dependencies = []
 
 [project.optional-dependencies]
 dev = [
