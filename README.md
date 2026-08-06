@@ -55,6 +55,7 @@ geodata and makes no claim about a real route.
 - `docs/03_research_plan.md`: execution phases and gates
 - `docs/04_decision_log.md`: decisions to keep auditable
 - `docs/05_data_sources_to_evaluate.md`: source-evaluation checklist
+- `docs/06_phase0_adversarial_audit.md`: contradictory audit and gated Phase 0 verdict
 - `prompts/codex_bootstrap.md`: first instruction to give Codex
 - `src/coastdown/physics.py`: baseline coasting simulator
 - `tests/`: executable checks
