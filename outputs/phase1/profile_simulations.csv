@@ -1,0 +1,3 @@
+edge_id,elapsed_time_s,moving_time_s,first_below_threshold_time_s,first_zero_speed_time_s,qualified_stop_time_s,stationary_time_s,stop_reason
+oisans-normal-01,27.459025157665906,27.459025157665906,,,,0.0,route_end
+oisans-hairpin-02,18.51648009564549,18.51648009564549,,,,0.0,route_end

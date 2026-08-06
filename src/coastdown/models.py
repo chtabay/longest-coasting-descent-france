@@ -141,6 +141,11 @@ class SimulationResult:
     speed_m_s: tuple[float, ...]
     completed_route: bool
     stop_reason: str
+    moving_time_s: float
+    first_below_threshold_time_s: float | None
+    first_zero_speed_time_s: float | None
+    qualified_stop_time_s: float | None
+    stationary_time_s: float
 
     @property
     def elapsed_time_s(self) -> float:

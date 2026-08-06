@@ -27,6 +27,12 @@ silently treated as resolved.
 
 ## Phase 1 — Source reconnaissance
 
+**Status: conditional prototype implemented.** The source matrix, typed provenance model,
+geometry contract, acquisition manifest, offline compact Oisans fixture and reconstruction
+command exist. Live OSM/RGE ALTI download was blocked by the execution proxy; therefore the
+real-data integration gate remains open until the manifest identifiers are refreshed, files
+are checksummed and spacing/source comparisons are rerun on the downloaded rasters.
+
 Evaluate candidate sources for:
 
 - routable bicycle network;
