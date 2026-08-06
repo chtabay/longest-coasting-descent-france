@@ -6,13 +6,14 @@ This repository is designed as a high-reference solution: assumptions, data, alg
 
 ## Status
 
-Phase 0 initialized:
+Phase 0 complete:
 
 - research question and acceptance criteria;
-- baseline physical model;
-- repository architecture;
-- staged research plan;
-- first Codex mission.
+- event-split one-dimensional physical model;
+- explicit SI-unit API and signed grade-ratio convention;
+- optional rotating-inertia equivalent mass;
+- validation and synthetic regression suite;
+- reproducible CSV, Markdown and SVG benchmark outputs.
 
 No national winner is claimed yet.
 
@@ -37,6 +38,15 @@ pytest
 python examples/synthetic_profiles.py
 ```
 
+From a source checkout that has not been installed, the equivalent benchmark command is:
+
+```bash
+PYTHONPATH=src python examples/synthetic_profiles.py
+```
+
+The benchmark overwrites the reproducible Phase 0 artifacts in `outputs/`. It requires no
+geodata and makes no claim about a real route.
+
 ## Repository map
 
 - `docs/00_scope.md`: scope and non-goals
@@ -48,6 +58,22 @@ python examples/synthetic_profiles.py
 - `prompts/codex_bootstrap.md`: first instruction to give Codex
 - `src/coastdown/physics.py`: baseline coasting simulator
 - `tests/`: executable checks
+
+## Phase 0 model
+
+The public grade input is always a dimensionless rise/run ratio: negative downhill, zero
+flat and positive uphill. Thus `-0.05` means a 5% descent. Explicit conversion helpers are
+available for percent grades and angles.
+
+Gravity, rolling resistance and aerodynamic drag are calculated from the real translating
+mass. Their net force is divided by the effective inertial mass, which additionally contains
+the optional rotating equivalent mass. The default 1.5 kg is provisional; pass
+`rotating_equivalent_mass_kg=0` to disable it.
+
+The deterministic solver uses constant-acceleration substeps within each nominal time step.
+It splits substeps at every segment boundary, route end, zero-speed point and stop event. A
+run stops when speed remains at or below 0.30 m/s for two seconds by default. Synthetic
+time-step comparisons quantify the remaining first-order integration error.
 
 ## Scientific posture
 
