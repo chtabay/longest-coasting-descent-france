@@ -6,13 +6,14 @@ This repository is designed as a high-reference solution: assumptions, data, alg
 
 ## Status
 
-Phase 0 initialized:
+Phase 0 complete:
 
 - research question and acceptance criteria;
-- baseline physical model;
-- repository architecture;
-- staged research plan;
-- first Codex mission.
+- event-split one-dimensional physical model;
+- explicit SI-unit API and signed grade-ratio convention;
+- optional rotating-inertia equivalent mass;
+- validation and synthetic regression suite;
+- reproducible CSV, Markdown and SVG benchmark outputs.
 
 No national winner is claimed yet.
 
@@ -37,6 +38,34 @@ pytest
 python examples/synthetic_profiles.py
 ```
 
+From a source checkout that has not been installed, the equivalent benchmark command is:
+
+```bash
+PYTHONPATH=src python examples/synthetic_profiles.py
+```
+
+The benchmark overwrites the reproducible Phase 0 artifacts in `outputs/`. It requires no
+geodata and makes no claim about a real route.
+
+### Phase 1 compact prototype
+
+```bash
+# Offline deterministic reconstruction from the committed inspection fixture
+PYTHONPATH=src python scripts/phase1_rebuild.py
+
+# Verify cached real inputs; add --download when network access is available
+python scripts/phase1_acquire.py --manifest data/phase1_manifest.json
+python scripts/phase1_acquire.py --manifest data/phase1_manifest.json --download
+
+# Live OSM + RGE ALTI reconstruction (network required, atomic live output)
+PYTHONPATH=src python scripts/phase1b_live_oisans.py
+```
+
+Raw downloads belong in `.cache/phase1/` and are ignored by Git. The offline fixture validates
+the geometry contract and structure handling but is explicitly not a replacement for the
+pending version-frozen OSM/RGE ALTI compact extract. Outputs are under `outputs/phase1/` and do
+not constitute a regional or national ranking.
+
 ## Repository map
 
 - `docs/00_scope.md`: scope and non-goals
@@ -45,9 +74,30 @@ python examples/synthetic_profiles.py
 - `docs/03_research_plan.md`: execution phases and gates
 - `docs/04_decision_log.md`: decisions to keep auditable
 - `docs/05_data_sources_to_evaluate.md`: source-evaluation checklist
+- `docs/06_phase0_adversarial_audit.md`: contradictory audit and gated Phase 0 verdict
+- `docs/07_geometry_elevation_contract.md`: normative geometry/elevation contract
+- `docs/08_source_matrix.md`: primary-source comparison and prototype decision
+- `docs/09_rotational_inertia_range.md`: provisional reproducible inertia scenarios
+- `docs/10_phase1b_live_reconstruction.md`: live OSM/RGE ALTI one-command pipeline
 - `prompts/codex_bootstrap.md`: first instruction to give Codex
 - `src/coastdown/physics.py`: baseline coasting simulator
 - `tests/`: executable checks
+
+## Phase 0 model
+
+The public grade input is always a dimensionless rise/run ratio: negative downhill, zero
+flat and positive uphill. Thus `-0.05` means a 5% descent. Explicit conversion helpers are
+available for percent grades and angles.
+
+Gravity, rolling resistance and aerodynamic drag are calculated from the real translating
+mass. Their net force is divided by the effective inertial mass, which additionally contains
+the optional rotating equivalent mass. The default 1.5 kg is provisional; pass
+`rotating_equivalent_mass_kg=0` to disable it.
+
+The deterministic solver uses constant-acceleration substeps within each nominal time step.
+It splits substeps at every segment boundary, route end, zero-speed point and stop event. A
+run stops when speed remains at or below 0.30 m/s for two seconds by default. Synthetic
+time-step comparisons quantify the remaining first-order integration error.
 
 ## Scientific posture
 

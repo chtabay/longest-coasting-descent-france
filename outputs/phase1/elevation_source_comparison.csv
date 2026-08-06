@@ -1,0 +1,3 @@
+edge_id,source,status
+fixture,RGE_ALTI_5m,network_refresh_required
+fixture,Copernicus_GLO30,network_refresh_required

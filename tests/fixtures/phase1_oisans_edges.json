@@ -1,0 +1,13 @@
+{
+  "fixture_status": "small frozen reconstruction fixture; not a national extract",
+  "crs": "EPSG:2154",
+  "geometry_source": "OpenStreetMap compact Oisans prototype",
+  "elevation_source": "fixture values for offline pipeline tests; real-data integration must refresh from RGE ALTI",
+  "edges": [
+    {"id":"oisans-normal-01","name":"Route de montagne - échantillon","structure":"normal","access":"admissible","samples":[[925000,6450000,1320],[925080,6450030,1312],[925160,6450090,1301],[925230,6450180,1294]]},
+    {"id":"oisans-hairpin-02","name":"Lacet - échantillon","structure":"normal","access":"review","samples":[[925300,6450200,1405],[925340,6450250,1398],[925300,6450300,1390],[925245,6450340,1383]]},
+    {"id":"oisans-bridge-review","name":"Pont - inspection requise","structure":"bridge","access":"review","samples":[[925500,6450400,null],[925560,6450440,null]]},
+    {"id":"oisans-tunnel-review","name":"Tunnel - inspection requise","structure":"tunnel","access":"review","samples":[[925700,6450500,null],[925800,6450530,null]]},
+    {"id":"oisans-stacked-review","name":"Croisement dénivelé - inspection requise","structure":"stacked","access":"review","samples":[[925900,6450600,null],[925980,6450650,null]]}
+  ]
+}

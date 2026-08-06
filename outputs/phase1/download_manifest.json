@@ -1,0 +1,33 @@
+{
+  "study_area": "compact Oisans prototype fixture",
+  "bbox_wgs84": [
+    6.02,
+    45.02,
+    6.18,
+    45.16
+  ],
+  "target_crs": "EPSG:2154",
+  "generated_at_utc": "2026-08-06T00:00:00Z",
+  "network_required_for_refresh": true,
+  "files": [
+    {
+      "id": "osm-compact-extract",
+      "filename": "oisans.osm.json",
+      "url": "https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%3Bway%5Bhighway%5D%2845.02%2C6.02%2C45.16%2C6.18%29%3Bout%20geom%3B",
+      "version": "live Overpass query; freeze response checksum before use",
+      "sha256": null
+    },
+    {
+      "id": "rge-alti-compact-tile",
+      "filename": "oisans-rge-alti.tif",
+      "url": "https://data.geopf.fr/telechargement/download/RGEALTI/RGEALTI_2-0_5M_ASC_LAMB93-IGN69_D038_2024-01-01/RGEALTI_2-0_5M_ASC_LAMB93-IGN69_D038_2024-01-01.7z",
+      "version": "manifest candidate; verify current IGN catalogue identifier",
+      "sha256": null
+    }
+  ],
+  "fixture": {
+    "path": "tests/fixtures/phase1_oisans_edges.json",
+    "bytes": 1238,
+    "sha256": "d2a4b20b6cc8fa7853515edb9eba41c1ccec34b4b33d65498bc806e18b1ebbad"
+  }
+}
