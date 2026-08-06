@@ -1,0 +1,13 @@
+scenario,variant,time_step_s,rotating_equivalent_mass_kg,elapsed_time_s,distance_m,final_speed_m_s,completed_route,stop_reason
+flat_to_stop,central,0.05,1.5,52.312649121,100.706193596,0.183805138,False,speed_threshold
+gentle_long,central,0.05,1.5,3025.010522923,12000.000000000,3.964671355,True,route_end
+steep_short,central,0.05,1.5,152.273865459,2000.000000000,13.901777314,True,route_end
+descent_rise_crossed,central,0.05,1.5,235.829360854,1315.000000000,3.983309374,True,route_end
+descent_rise_stopped,central,0.05,1.5,42.932391716,237.203723109,0.000000000,False,speed_threshold
+many_short_segments,central,0.2,1.5,259.270088149,980.000000000,3.281084196,True,route_end
+rotational_inertia,enabled_1.5kg,0.05,1.5,235.829360854,1315.000000000,3.983309374,True,route_end
+rotational_inertia,disabled_0kg,0.05,0.0,236.222016635,1315.000000000,3.981510408,True,route_end
+time_step_comparison,dt_0.2s,0.2,1.5,235.911434109,1315.000000000,3.982999573,True,route_end
+time_step_comparison,dt_0.1s,0.1,1.5,235.856752275,1315.000000000,3.983205681,True,route_end
+time_step_comparison,dt_0.05s,0.05,1.5,235.829360854,1315.000000000,3.983309374,True,route_end
+time_step_comparison,dt_0.025s,0.025,1.5,235.815533095,1315.000000000,3.983361503,True,route_end
