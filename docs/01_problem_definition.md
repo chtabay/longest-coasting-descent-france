@@ -54,12 +54,6 @@ Threshold crossings and dwell expiry are interpolated within a nominal time step
 clamped at zero, so rolling resistance cannot reverse the bicycle. A positive net force on a
 descent or in a tailwind may accelerate it again before the dwell expires.
 
-Every result retains separate clocks: total elapsed time; time with speed above the numerical
-zero tolerance (`1e-12 m/s`); stationary time; first entry at or below the operational speed
-threshold; first physical zero-speed event; and dwell-qualified stop time. Optional event times
-are `None` when absent. A transient zero followed by downhill restart is preserved rather than
-being mislabeled as a qualified stop. No national objective metric is selected yet.
-
 ## Numerical integration
 
 Acceleration is held constant over an inspectable substep and recomputed from its ending

@@ -47,22 +47,6 @@ PYTHONPATH=src python examples/synthetic_profiles.py
 The benchmark overwrites the reproducible Phase 0 artifacts in `outputs/`. It requires no
 geodata and makes no claim about a real route.
 
-### Phase 1 compact prototype
-
-```bash
-# Offline deterministic reconstruction from the committed inspection fixture
-PYTHONPATH=src python scripts/phase1_rebuild.py
-
-# Verify cached real inputs; add --download when network access is available
-python scripts/phase1_acquire.py --manifest data/phase1_manifest.json
-python scripts/phase1_acquire.py --manifest data/phase1_manifest.json --download
-```
-
-Raw downloads belong in `.cache/phase1/` and are ignored by Git. The offline fixture validates
-the geometry contract and structure handling but is explicitly not a replacement for the
-pending version-frozen OSM/RGE ALTI compact extract. Outputs are under `outputs/phase1/` and do
-not constitute a regional or national ranking.
-
 ## Repository map
 
 - `docs/00_scope.md`: scope and non-goals
@@ -72,9 +56,6 @@ not constitute a regional or national ranking.
 - `docs/04_decision_log.md`: decisions to keep auditable
 - `docs/05_data_sources_to_evaluate.md`: source-evaluation checklist
 - `docs/06_phase0_adversarial_audit.md`: contradictory audit and gated Phase 0 verdict
-- `docs/07_geometry_elevation_contract.md`: normative geometry/elevation contract
-- `docs/08_source_matrix.md`: primary-source comparison and prototype decision
-- `docs/09_rotational_inertia_range.md`: provisional reproducible inertia scenarios
 - `prompts/codex_bootstrap.md`: first instruction to give Codex
 - `src/coastdown/physics.py`: baseline coasting simulator
 - `tests/`: executable checks
