@@ -4,6 +4,10 @@ This is a technical execution plan, not a teaching plan.
 
 ## Phase 0 — Definition and baseline
 
+**Status: complete.** The deterministic simulator, validation, event handling, optional
+rotational inertia, regression tests and synthetic benchmark are implemented. Generated
+artifacts live in `outputs/`; no national candidate is claimed.
+
 Deliverables:
 
 - formal objective and admissibility rules;
@@ -16,6 +20,10 @@ Exit gate:
 - a reviewer can reproduce simulations on artificial slopes;
 - units and sign conventions are explicit;
 - stop behavior is tested.
+
+Remaining model uncertainties (parameter calibration, bearing losses, surface behavior and
+the operational meaning of stopping) are registered for sensitivity analysis rather than
+silently treated as resolved.
 
 ## Phase 1 — Source reconnaissance
 
