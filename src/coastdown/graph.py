@@ -35,7 +35,7 @@ from .live_oisans import (
     parse_osm_directed_edges,
     parse_turn_restrictions,
 )
-from .sampling import SamplePoint, sample_polyline
+from .sampling import SamplePoint, reverse_samples, sample_polyline
 from .surfaces import SurfaceClass
 from .usability import SCENARIO_ADMITS, UsabilityClass, assess_usability
 
@@ -179,10 +179,20 @@ def _restriction_edges(
     return from_ids, to_ids
 
 
-def build_graph(osm: dict, scenario: str) -> RoutableGraph:
+# Junctions, and therefore the geometry of every graph piece, are derived from
+# the widest scenario and never from the one being routed. A narrower scenario
+# admits fewer ways, which would move the junction set, which would move the
+# sample points, which would leave the acquired elevations addressing geometry
+# that no longer exists. Splitting once keeps every scenario on the same pieces.
+SPLITTING_SCENARIO = "extended_vtc"
+
+
+def build_graph(
+    osm: dict, scenario: str, *, splitting_scenario: str = SPLITTING_SCENARIO
+) -> RoutableGraph:
     """Assemble the directed, restriction-aware graph for one usability scenario."""
+    junctions = junction_node_ids(admitted_forward_edges(osm, splitting_scenario))
     forward = admitted_forward_edges(osm, scenario)
-    junctions = junction_node_ids(forward)
 
     edges: dict[str, GraphEdge] = {}
     outgoing: dict[int, list[str]] = defaultdict(list)
@@ -193,12 +203,14 @@ def build_graph(osm: dict, scenario: str) -> RoutableGraph:
         assessment = assess_usability(dict(edge.tags))
         directions = bicycle_directions(dict(edge.tags))
         for piece_index, geometry, start_node, end_node in way_pieces(edge, junctions):
+            try:
+                forward_samples = piece_sample_points(geometry)
+            except ValueError:
+                continue
             for direction in directions:
-                oriented = geometry if direction == "forward" else tuple(reversed(geometry))
-                try:
-                    oriented_samples = piece_sample_points(oriented)
-                except ValueError:
-                    continue
+                oriented_samples = (
+                    forward_samples if direction == "forward" else reverse_samples(forward_samples)
+                )
                 head, tail = (
                     (start_node, end_node) if direction == "forward" else (end_node, start_node)
                 )

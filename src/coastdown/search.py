@@ -331,32 +331,26 @@ def search_from_edge(
     if seed is None or not seed.simulable:
         return [], limits
 
-    best: list[RouteCandidate] = []
-    stack: list[tuple[list[str], set[tuple[int, int]], float]] = [
-        ([seed_edge_id], {_piece(graph, seed_edge_id)}, initial_speed_m_s)
+    # Terminated routes are kept as (approximate time, termination, path) and
+    # only the survivors are simulated end to end. Re-simulating the whole route
+    # at every termination made the regional search quadratic in route length
+    # for results that were then discarded.
+    finished: list[tuple[float, str, list[str]]] = []
+    stack: list[tuple[list[str], frozenset[tuple[int, int]], float, float]] = [
+        ([seed_edge_id], frozenset({_piece(graph, seed_edge_id)}), initial_speed_m_s, 0.0)
     ]
 
-    def record(path: list[str], termination: str) -> None:
-        candidate = evaluate_route(
-            graph,
-            profiles,
-            path,
-            seed_edge_id=seed_edge_id,
-            bicycle=machine,
-            environment=air,
-            initial_speed_m_s=initial_speed_m_s,
-            lateral_scenario=lateral_scenario,
-            termination=termination,
-        )
-        best.append(candidate)
-        best.sort(key=lambda item: -item.elapsed_time_s)
-        del best[keep_best:]
+    def finish(path: list[str], elapsed: float, termination: str) -> None:
+        finished.append((elapsed, termination, path))
+        if len(finished) > keep_best * 8:
+            finished.sort(key=lambda item: -item[0])
+            del finished[keep_best:]
 
     while stack:
         if limits.expansions >= limits.max_expansions:
             limits.exhausted = True
             break
-        path, used, entry_speed = stack.pop()
+        path, used, entry_speed, elapsed = stack.pop()
         limits.expansions += 1
         current = profiles[path[-1]]
 
@@ -372,17 +366,18 @@ def search_from_edge(
             stop_speed_m_s=STOP_SPEED_M_S,
             stop_dwell_s=STOP_DWELL_S,
         )
+        total = elapsed + outcome.elapsed_time_s
         if outcome.stop_reason != "route_end":
-            record(path, "qualified_stop")
+            finish(path, total, "qualified_stop")
             continue
 
         exit_speed = outcome.speed_m_s[-1]
         if exit_speed <= STOP_SPEED_M_S:
-            record(path, "qualified_stop")
+            finish(path, total, "qualified_stop")
             continue
 
         if len(path) >= limits.max_edges_per_route:
-            record(path, "route_length_cap")
+            finish(path, total, "route_length_cap")
             continue
 
         continuations = [
@@ -394,10 +389,7 @@ def search_from_edge(
         ]
         if not continuations:
             blocked = graph.continuations(path[-1])
-            record(
-                path,
-                "no_admissible_continuation" if blocked else "network_end",
-            )
+            finish(path, total, "no_admissible_continuation" if blocked else "network_end")
             continue
         for candidate in continuations:
             stack.append(
@@ -405,9 +397,26 @@ def search_from_edge(
                     [*path, candidate],
                     used | {_piece(graph, candidate)},
                     exit_speed,
+                    total,
                 )
             )
 
+    finished.sort(key=lambda item: -item[0])
+    best = [
+        evaluate_route(
+            graph,
+            profiles,
+            path,
+            seed_edge_id=seed_edge_id,
+            bicycle=machine,
+            environment=air,
+            initial_speed_m_s=initial_speed_m_s,
+            lateral_scenario=lateral_scenario,
+            termination=termination,
+        )
+        for _, termination, path in finished[:keep_best]
+    ]
+    best.sort(key=lambda item: -item.elapsed_time_s)
     return best, limits
 
 

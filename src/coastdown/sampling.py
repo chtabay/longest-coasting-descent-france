@@ -155,6 +155,33 @@ def sample_polyline(
     return tuple(samples)
 
 
+def reverse_samples(samples: Sequence[SamplePoint]) -> tuple[SamplePoint, ...]:
+    """Mirror a sample sequence for the opposite direction of travel.
+
+    Sampling the reversed geometry would place the grid from the other end and
+    produce different ground points, so the two directions of one road would be
+    measured at different places and need two sets of elevations.  Mirroring
+    keeps both directions on exactly the same points, which is also what the
+    geometry contract requires: reversing an edge reverses the sample order and
+    the grade signs while preserving the multiset of lengths.
+    """
+    if len(samples) < 2:
+        raise ValueError("At least two samples are required.")
+    total = samples[-1].chainage_m
+    return tuple(
+        SamplePoint(
+            sample.longitude,
+            sample.latitude,
+            sample.x_m,
+            sample.y_m,
+            total - sample.chainage_m,
+            sample.on_uniform_grid,
+            sample.is_source_vertex,
+        )
+        for sample in reversed(samples)
+    )
+
+
 def subsample_uniform(
     samples: Sequence[SamplePoint], base_spacing_m: float, target_spacing_m: float
 ) -> tuple[SamplePoint, ...]:
