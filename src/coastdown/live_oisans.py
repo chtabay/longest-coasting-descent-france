@@ -72,6 +72,12 @@ class TurnRestriction:
     via_node_ids: tuple[int, ...]
     via_way_ids: tuple[int, ...]
     to_way_ids: tuple[int, ...]
+    except_values: tuple[str, ...] = ()
+
+    @property
+    def applies_to_bicycles(self) -> bool:
+        """A turn ban that excepts bicycles does not constrain this study's rider."""
+        return "bicycle" not in self.except_values
 
 
 @dataclass(frozen=True)
@@ -248,6 +254,9 @@ def parse_turn_restrictions(payload: dict[str, Any]) -> tuple[TurnRestriction, .
                 tuple(roles.get(("via", "node"), ())),
                 tuple(roles.get(("via", "way"), ())),
                 tuple(roles.get(("to", "way"), ())),
+                tuple(
+                    item.strip() for item in str(tags.get("except", "")).split(";") if item.strip()
+                ),
             )
         )
     return tuple(restrictions)

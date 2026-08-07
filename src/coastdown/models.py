@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import bisect
 import math
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -86,8 +87,19 @@ class RoadProfile:
 
     segment_lengths_m: tuple[float, ...]
     grade_ratios: tuple[float, ...]
+    segment_rolling_resistance: tuple[float, ...] | None
+    # Cumulative end distances, computed once. The simulator asks for them on
+    # every integration substep, so rebuilding the tuple each time made the cost
+    # of a run quadratic in the number of segments: a 600-segment profile took
+    # 1.13 s against 0.01 s for 60. A regional route carries thousands.
+    _end_distances_m: tuple[float, ...]
 
-    def __init__(self, segment_lengths_m: Iterable[float], grade_ratios: Iterable[float]):
+    def __init__(
+        self,
+        segment_lengths_m: Iterable[float],
+        grade_ratios: Iterable[float],
+        segment_rolling_resistance: Iterable[float] | None = None,
+    ):
         lengths = tuple(_finite("segment_lengths_m item", value) for value in segment_lengths_m)
         grades = tuple(_finite("grade_ratios item", value) for value in grade_ratios)
         object.__setattr__(self, "segment_lengths_m", lengths)
@@ -98,6 +110,27 @@ class RoadProfile:
             raise ValueError("Every segment_lengths_m item must be positive.")
         if any(abs(grade) > 0.5 for grade in grades):
             raise ValueError("Every grade_ratios item must be within [-0.5, 0.5].")
+        ends: list[float] = []
+        running = 0.0
+        for length in lengths:
+            running += length
+            ends.append(running)
+        object.__setattr__(self, "_end_distances_m", tuple(ends))
+        if segment_rolling_resistance is None:
+            object.__setattr__(self, "segment_rolling_resistance", None)
+            return
+        # A route crossing asphalt, gravel and dirt cannot share one coefficient:
+        # rolling resistance dominates the end of a coast and varies by roughly an
+        # order of magnitude across those surfaces.
+        coefficients = tuple(
+            _finite("segment_rolling_resistance item", value)
+            for value in segment_rolling_resistance
+        )
+        if len(coefficients) != len(lengths):
+            raise ValueError("segment_rolling_resistance must have one value per segment.")
+        if any(not 0 <= value < 0.1 for value in coefficients):
+            raise ValueError("Every segment_rolling_resistance item must be in [0, 0.1).")
+        object.__setattr__(self, "segment_rolling_resistance", coefficients)
 
     @property
     def grades(self) -> tuple[float, ...]:
@@ -106,25 +139,18 @@ class RoadProfile:
 
     @property
     def total_length_m(self) -> float:
-        return math.fsum(self.segment_lengths_m)
+        return self._end_distances_m[-1]
 
     @property
     def segment_end_distances_m(self) -> tuple[float, ...]:
-        result: list[float] = []
-        total = 0.0
-        for length in self.segment_lengths_m:
-            total += length
-            result.append(total)
-        return tuple(result)
+        return self._end_distances_m
 
     def segment_index_at_distance(self, distance_m: float) -> int:
         distance = _finite("distance_m", distance_m)
-        if distance < 0 or distance > self.total_length_m:
+        if distance < 0 or distance > self._end_distances_m[-1]:
             raise ValueError("distance_m must lie within the road profile.")
-        for index, end in enumerate(self.segment_end_distances_m):
-            if distance < end or index == len(self.grade_ratios) - 1:
-                return index
-        return len(self.grade_ratios) - 1
+        index = bisect.bisect_right(self._end_distances_m, distance)
+        return min(index, len(self.grade_ratios) - 1)
 
     def grade_ratio_at_distance(self, distance_m: float) -> float:
         return self.grade_ratios[self.segment_index_at_distance(distance_m)]
