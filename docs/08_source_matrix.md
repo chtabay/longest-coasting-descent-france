@@ -1,8 +1,21 @@
 # Phase 1 source matrix and prototype decision
 
-Consultation date recorded for this revision: **2026-08-06**. Live retrieval was attempted but
-the execution proxy returned HTTP 403; URLs below are primary producer/catalogue entry points
-and every version identifier must be refreshed and frozen before real-data integration.
+Consultation date recorded for this revision: **2026-08-07**. Live retrieval now succeeds; the
+HTTP 403 recorded on 2026-08-06 was an execution-proxy limitation, not a property of the
+services. Every endpoint below has been exercised and the observed behaviour is recorded in
+`docs/10_phase1b_live_reconstruction.md` and in `outputs/phase1/live/http_transaction_log.csv`.
+
+Three entries in the previous revision did not survive contact with the services:
+
+- `https://data.geopf.fr/telechargement` answers **HTTP 405** to GET and is not a discovery
+  endpoint;
+- `https://wxs.ign.fr/` no longer resolves;
+- `ign_rge_alti_wld` is the *pyramid* resource and answers on an approximately 3.5 m effective
+  grid, not the 1 m grid its name suggests. `ign_rge_alti_par_territoires` is the 1 m product
+  and is now primary (D-009).
+
+The lesson is recorded rather than quietly fixed: a resource identifier, a documented URL and a
+product name are all claims, and each must be measured before it is relied upon.
 
 | Source | Producer | Licence / redistribution | Coverage, resolution, accuracy | CRS / vertical datum / formats | Access, update, size | Useful road/structure/cycling semantics | Missing values and known defects | Freeze / integrity |
 |---|---|---|---|---|---|---|---|---|
@@ -20,6 +33,24 @@ Primary links recorded:
 - IGN RGE ALTI: <https://geoservices.ign.fr/rgealti>
 - IGN open-data licence: <https://www.ign.fr/institut/licence-ouverte-etendue-aux-donnees-ign>
 - Copernicus DEM documentation/catalogue: <https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM>
+
+## Endpoints exercised on 2026-08-07
+
+| Producer | Endpoint | Result |
+|---|---|---|
+| OSM | `https://overpass-api.de/api/interpreter` | 200, ~7.6 MB for the study bbox, ODbL declared in the response `copyright` field, database timestamp returned |
+| OSM | `https://overpass-api.de/api/status` | 200, slot allowance |
+| IGN | `https://data.geopf.fr/altimetrie/` | 200, service version string |
+| IGN | `https://data.geopf.fr/altimetrie/resources` | 200, index of 9 altimetry resources |
+| IGN | `https://data.geopf.fr/altimetrie/resources/ign_rge_alti_par_territoires` | 200, resource description |
+| IGN | `https://data.geopf.fr/altimetrie/resources/ign_rge_alti_wld` | 200, resource description |
+| IGN | `https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json` | 200, ≤200 points per GET; 400 points returns HTTP 414 |
+| IGN | `https://data.geopf.fr/telechargement` | **405**, removed from the pipeline |
+| IGN | `https://wxs.ign.fr/calcul/alti/rest/elevation.json` | **DNS failure**, host retired |
+
+The altimetry service does not return a vertical datum. NGF-IGN 1969 is asserted from the RGE
+ALTI product specification for mainland France and is recorded in the manifest as an assertion,
+not as a service response.
 
 ## Prototype decision
 

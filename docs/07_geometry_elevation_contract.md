@@ -34,12 +34,36 @@ Zero horizontal length, missing elevation, absolute grade above the declared gua
 elevation jumps are errors. Reversing an edge reverses sample/elevation order and grade signs,
 while preserving the multiset of horizontal and 3D lengths.
 
+Step 4 declares a spacing but only bounds it. Densification subdivides source chords and never
+removes a source vertex, so where the source geometry is already finer the realised spacing is
+the source spacing. Every profile therefore publishes realised mean, minimum and maximum spacing
+next to the requested value (D-012).
+
+## Declared conditioning scenario
+
+Step 7 is exercised by exactly one named scenario: a centred moving average of elevation against
+chainage over a declared window, 25 m by default. It targets a known artefact — sampling a
+terrain raster finer than its cell size yields alternating flat steps and cell-height jumps that
+inflate 3D length and cumulative ascent without adding information.
+
+The scenario is published beside the raw profile, never instead of it, and it carries no
+guarantee of admissibility. On a hairpin it can raise the maximum grade while lowering the
+violation count, because averaging along chainage pulls together two points sitting on different
+levels of the same bend. A profile that still violates the simulator's bound after conditioning
+is reported unsimulated with its violation count; it is never clipped into compliance (D-010).
+
 ## Structures
 
 Terrain elevation is not roadway elevation on bridges, tunnels or stacked roads. Such edges
 retain their structure and `layer`/level metadata. They are simulable only with a compatible
 roadway/structure altitude source; otherwise their elevation is unknown and they enter the
 inspection list. Missing access data similarly maps to `review`, never silently to admissible.
+
+The rule reads an explicit `SourceProvenance.elevation_model_kind`, which must be `terrain`,
+`surface`, `roadway` or `None`. It previously tested whether the dataset *name* began with
+"terrain", so the live provenance string "RGE ALTI API" slipped past it and the rule could never
+fire on real data. A source that declares nothing is still treated as bare ground, so silence
+cannot buy a structure an elevation it has not earned.
 
 ## Provenance minimum
 

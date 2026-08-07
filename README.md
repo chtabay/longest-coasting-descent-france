@@ -15,7 +15,23 @@ Phase 0 complete:
 - validation and synthetic regression suite;
 - reproducible CSV, Markdown and SVG benchmark outputs.
 
-No national winner is claimed yet.
+Phase 1A complete: typed geometry/elevation contract, provenance types, structure rejection and
+a deterministic offline fixture reconstruction.
+
+Phase 1B complete, on real data: the Oisans road graph is extracted from OpenStreetMap through
+Overpass and profiled against IGN RGE ALTI through the Géoplateforme altimetry API. Outputs,
+provenance, checksums and the full HTTP transaction log are under `outputs/phase1/live/`; the
+method and the measured service behaviour are in `docs/10_phase1b_live_reconstruction.md`.
+
+```bash
+PYTHONPATH=src python scripts/phase1b_live_oisans.py
+```
+
+The offline suite never touches the network: `tests/conftest.py` refuses every outbound socket,
+and the reconstruction is exercised against verbatim frozen extracts of real responses.
+
+No regional or national winner is claimed. The selected ways are a stratified validation sample,
+not a ranking.
 
 ## Core definition, provisional
 
@@ -56,9 +72,20 @@ geodata and makes no claim about a real route.
 - `docs/04_decision_log.md`: decisions to keep auditable
 - `docs/05_data_sources_to_evaluate.md`: source-evaluation checklist
 - `docs/06_phase0_adversarial_audit.md`: contradictory audit and gated Phase 0 verdict
+- `docs/07_geometry_elevation_contract.md`: normative geometry/elevation contract
+- `docs/08_source_matrix.md`: source matrix and the endpoints actually exercised
+- `docs/10_phase1b_live_reconstruction.md`: live reconstruction method and measured service behaviour
 - `prompts/codex_bootstrap.md`: first instruction to give Codex
 - `src/coastdown/physics.py`: baseline coasting simulator
-- `tests/`: executable checks
+- `src/coastdown/geography.py`: typed geometry/elevation contract
+- `src/coastdown/live_oisans.py`: deterministic reconstruction helpers, no network
+- `scripts/phase1b_live_oisans.py`: live acquisition and publication
+- `tests/`: executable checks, network refused
+
+## Attribution
+
+Road geometry and tags: © OpenStreetMap contributors, ODbL 1.0.
+Elevations: © IGN — RGE ALTI® via Géoplateforme, Licence Ouverte / Open Licence (Etalab) 2.0.
 
 ## Phase 0 model
 
