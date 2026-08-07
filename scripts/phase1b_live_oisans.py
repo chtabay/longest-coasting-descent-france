@@ -584,7 +584,9 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--cache", default=".cache/phase1b-live")
     parser.add_argument("--output", default="outputs/phase1/live")
-    parser.add_argument("--max-edges", type=int, default=6)
+    # Eight covers every highway stratum present in the study area plus the
+    # hairpin case; the committed outputs are the result of the default run.
+    parser.add_argument("--max-edges", type=int, default=8)
     arguments = parser.parse_args()
 
     started = time.monotonic()
@@ -1019,8 +1021,11 @@ def main() -> None:
             ),
             "structure_edges_total": len(structure_rows),
             "restriction_relations": len(restrictions),
-            "osm_nodes_returned": sum(
-                1 for element in osm.get("elements", []) if element.get("type") == "node"
+            # The query returns geometry inline, so nodes are not emitted as
+            # separate elements; their identifiers travel in each way's `nodes`
+            # array and this is the count of distinct ones.
+            "distinct_node_ids_referenced": len(
+                {node for way in raw_ways for node in way.get("nodes", ())}
             ),
             "profile_ways_selected": len(selected),
             "profile_results": len(sampling_rows),
@@ -1135,13 +1140,15 @@ def main() -> None:
         report_lines = [
             "# Phase 1B live Oisans reconstruction",
             "",
-            "source = live  ",
-            f"retrieved (UTC) = {retrieved}  ",
-            f"OSM database timestamp = {osm_timestamp}  ",
-            f"OSM response = {len(osm_bytes)} bytes, SHA-256 {sha256_bytes(osm_bytes)}  ",
-            f"IGN altimetry service = {service_version}  ",
-            f"primary elevation resource = {PRIMARY_RESOURCE}  ",
-            f"control elevation resource = {CONTROL_RESOURCE}",
+            # Bullets rather than two-space Markdown line breaks, so the
+            # published artifact carries no trailing whitespace.
+            "- source = live",
+            f"- retrieved (UTC) = {retrieved}",
+            f"- OSM database timestamp = {osm_timestamp}",
+            f"- OSM response = {len(osm_bytes)} bytes, SHA-256 {sha256_bytes(osm_bytes)}",
+            f"- IGN altimetry service = {service_version}",
+            f"- primary elevation resource = {PRIMARY_RESOURCE}",
+            f"- control elevation resource = {CONTROL_RESOURCE}",
             "",
             "## Graph",
             "",

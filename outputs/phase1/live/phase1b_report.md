@@ -1,12 +1,12 @@
 # Phase 1B live Oisans reconstruction
 
-source = live  
-retrieved (UTC) = 2026-08-07T07:21:53+00:00  
-OSM database timestamp = 2026-08-07T07:20:17Z  
-OSM response = 7631277 bytes, SHA-256 6315ac69f15245324487448a396e8f780e16c09740afda1bb8b9a9de85bdcbcc  
-IGN altimetry service = API Géoplateforme - Calcul altimétrique version 0.32.1  
-primary elevation resource = ign_rge_alti_par_territoires  
-control elevation resource = ign_rge_alti_wld
+- source = live
+- retrieved (UTC) = 2026-08-07T19:50:49+00:00
+- OSM database timestamp = 2026-08-07T19:49:47Z
+- OSM response = 7632640 bytes, SHA-256 23d4a626ce08e02a2c25a0076fd3b2afd410cbb48ee82c979168c5b32dbcb93d
+- IGN altimetry service = API Géoplateforme - Calcul altimétrique version 0.32.1
+- primary elevation resource = ign_rge_alti_par_territoires
+- control elevation resource = ign_rge_alti_wld
 
 ## Graph
 

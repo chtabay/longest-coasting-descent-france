@@ -1,9 +1,9 @@
 source,retrieved_at,osm_way_id,edge_id,spacing_m,primary_resource,control_resource,point_count,mean_difference_m,min_difference_m,max_difference_m,p95_absolute_difference_m,max_absolute_difference_m
-live,2026-08-07T07:21:53+00:00,28437433,osm-way-28437433-forward,10.0,ign_rge_alti_par_territoires,ign_rge_alti_wld,66,-0.023,-0.82,0.73,0.65,0.82
-live,2026-08-07T07:21:53+00:00,28477536,osm-way-28477536-forward,10.0,ign_rge_alti_par_territoires,ign_rge_alti_wld,60,0.0105,-0.08,0.29,0.11,0.29
-live,2026-08-07T07:21:53+00:00,28417004,osm-way-28417004-forward,10.0,ign_rge_alti_par_territoires,ign_rge_alti_wld,45,0.0371,-0.42,0.53,0.46,0.53
-live,2026-08-07T07:21:53+00:00,28429107,osm-way-28429107-forward,10.0,ign_rge_alti_par_territoires,ign_rge_alti_wld,42,-0.0136,-0.7,0.46,0.46,0.7
-live,2026-08-07T07:21:53+00:00,49210503,osm-way-49210503-forward,10.0,ign_rge_alti_par_territoires,ign_rge_alti_wld,39,0.011,-1.27,0.81,0.14,1.27
-live,2026-08-07T07:21:53+00:00,36939194,osm-way-36939194-forward,10.0,ign_rge_alti_par_territoires,ign_rge_alti_wld,66,-0.0095,-0.73,0.77,0.67,0.77
-live,2026-08-07T07:21:53+00:00,363222611,osm-way-363222611-forward,10.0,ign_rge_alti_par_territoires,ign_rge_alti_wld,154,0.0013,-0.7,0.76,0.61,0.76
-live,2026-08-07T07:21:53+00:00,708124926,osm-way-708124926-forward,10.0,ign_rge_alti_par_territoires,ign_rge_alti_wld,623,0.0076,-0.61,0.66,0.46,0.66
+live,2026-08-07T19:50:49+00:00,28437433,osm-way-28437433-forward,10.0,ign_rge_alti_par_territoires,ign_rge_alti_wld,66,-0.023,-0.82,0.73,0.65,0.82
+live,2026-08-07T19:50:49+00:00,28477536,osm-way-28477536-forward,10.0,ign_rge_alti_par_territoires,ign_rge_alti_wld,60,0.0105,-0.08,0.29,0.11,0.29
+live,2026-08-07T19:50:49+00:00,28417004,osm-way-28417004-forward,10.0,ign_rge_alti_par_territoires,ign_rge_alti_wld,45,0.0371,-0.42,0.53,0.46,0.53
+live,2026-08-07T19:50:49+00:00,28429107,osm-way-28429107-forward,10.0,ign_rge_alti_par_territoires,ign_rge_alti_wld,42,-0.0136,-0.7,0.46,0.46,0.7
+live,2026-08-07T19:50:49+00:00,49210503,osm-way-49210503-forward,10.0,ign_rge_alti_par_territoires,ign_rge_alti_wld,39,0.011,-1.27,0.81,0.14,1.27
+live,2026-08-07T19:50:49+00:00,36939194,osm-way-36939194-forward,10.0,ign_rge_alti_par_territoires,ign_rge_alti_wld,66,-0.0095,-0.73,0.77,0.67,0.77
+live,2026-08-07T19:50:49+00:00,363222611,osm-way-363222611-forward,10.0,ign_rge_alti_par_territoires,ign_rge_alti_wld,154,0.0013,-0.7,0.76,0.61,0.76
+live,2026-08-07T19:50:49+00:00,708124926,osm-way-708124926-forward,10.0,ign_rge_alti_par_territoires,ign_rge_alti_wld,623,0.0076,-0.61,0.66,0.46,0.66

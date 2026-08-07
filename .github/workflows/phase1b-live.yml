@@ -15,18 +15,54 @@ jobs:
       - run: pytest
       - run: ruff check .
       - run: ruff format --check .
-      - name: Reconstruct compact live Oisans data
+      - name: Reconstruct live Oisans data
         run: PYTHONPATH=src python scripts/phase1b_live_oisans.py
-      - name: Require provenance and checksums
+      - name: Require the mandatory outputs, provenance and checksums
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
-          manifest = json.loads(Path("outputs/phase1/live/data_manifest.json").read_text())
+
+          live = Path("outputs/phase1/live")
+          required = [
+              "data_manifest.json",
+              "osm_extraction_summary.json",
+              "graph_quality.csv",
+              "sampling_comparison.csv",
+              "structure_review.csv",
+              "profile_simulations.csv",
+              "elevation_source_comparison.csv",
+              "manual_edge_audit.csv",
+              "http_transaction_log.csv",
+              "real_graph_map.svg",
+              "phase1b_report.md",
+          ]
+          missing = [name for name in required if not (live / name).is_file()]
+          assert not missing, f"missing outputs: {missing}"
+          assert any((live / "profiles").glob("*.csv")), "no per-point profiles were written"
+
+          manifest = json.loads((live / "data_manifest.json").read_text(encoding="utf-8"))
           assert manifest["source"] == "live"
-          assert manifest["osm"]["response_sha256"]
-          assert manifest["altimetry_cache_files"]
+          assert manifest["altimetry_cache_files"], "no altimetry response was cached"
           assert all(item["sha256"] for item in manifest["altimetry_cache_files"])
+          # Every declared source must carry the provenance the study requires.
+          for source in manifest["sources"]:
+              for field in ("producer", "product", "resource", "discovery_url",
+                            "request_url", "retrieved_at_utc", "licence", "attribution"):
+                  assert source.get(field), f"{source.get('resource')} lacks {field}"
+
+          summary = json.loads((live / "osm_extraction_summary.json").read_text(encoding="utf-8"))
+          assert summary["source"] == "live"
+          assert summary["response_sha256"]
+          assert summary["osm_timestamp_base"]
+          counts = summary["counts"]
+          assert counts["raw_osm_highway_ways"] > 0
+          assert counts["directed_edges_created"] >= counts["raw_osm_highway_ways"]
+          assert counts["profile_ways_selected"] >= 2
+          assert counts["profile_results"] > 0
+          # A run that simulated nothing is a failed reconstruction, not a result.
+          assert counts["profile_simulations_run"] > 0
+          print(json.dumps(counts, indent=2, sort_keys=True))
           PY
       - uses: actions/upload-artifact@v4
         with:
