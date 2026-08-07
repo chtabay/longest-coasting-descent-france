@@ -153,10 +153,42 @@ def simulate_profile(
     below_s = 0.0
     epsilon = 1e-12
 
-    if initial_speed_m_s <= stop_speed_m_s and stop_dwell_s == 0:
+    def result(completed_route: bool, stop_reason: str) -> SimulationResult:
+        moving_time_s = 0.0
+        stationary_time_s = 0.0
+        first_below: float | None = None
+        first_zero: float | None = None
+        for index, (time, speed) in enumerate(zip(times, speeds)):
+            if first_zero is None and speed <= epsilon:
+                first_zero = time
+            if first_below is None and speed <= stop_speed_m_s:
+                if index == 0 or speeds[index - 1] <= stop_speed_m_s:
+                    first_below = time
+                else:
+                    previous_speed = speeds[index - 1]
+                    fraction = (previous_speed - stop_speed_m_s) / (previous_speed - speed)
+                    first_below = times[index - 1] + fraction * (time - times[index - 1])
+            if index:
+                duration = time - times[index - 1]
+                if speed <= epsilon and speeds[index - 1] <= epsilon:
+                    stationary_time_s += duration
+                else:
+                    moving_time_s += duration
         return SimulationResult(
-            tuple(times), tuple(distances), tuple(speeds), False, "speed_threshold"
+            tuple(times),
+            tuple(distances),
+            tuple(speeds),
+            completed_route,
+            stop_reason,
+            moving_time_s,
+            first_below,
+            first_zero,
+            times[-1] if stop_reason == "speed_threshold" else None,
+            stationary_time_s,
         )
+
+    if initial_speed_m_s <= stop_speed_m_s and stop_dwell_s == 0:
+        return result(False, "speed_threshold")
 
     while times[-1] < max_time_s - epsilon:
         nominal_remaining = min(time_step_s, max_time_s - times[-1])
@@ -166,9 +198,7 @@ def simulate_profile(
             speed = speeds[-1]
             if distance >= profile.total_length_m - epsilon:
                 distances[-1] = profile.total_length_m
-                return SimulationResult(
-                    tuple(times), tuple(distances), tuple(speeds), True, "route_end"
-                )
+                return result(True, "route_end")
 
             index = profile.segment_index_at_distance(distance)
             boundary = profile.segment_end_distances_m[index]
@@ -204,9 +234,7 @@ def simulate_profile(
                 times.append(time + duration)
                 distances.append(max(distance, new_distance))
                 speeds.append(new_speed)
-                return SimulationResult(
-                    tuple(times), tuple(distances), tuple(speeds), False, "speed_threshold"
-                )
+                return result(False, "speed_threshold")
 
             new_speed = max(0.0, speed + acceleration * duration)
             new_distance = distance + speed * duration + 0.5 * acceleration * duration * duration
@@ -230,12 +258,10 @@ def simulate_profile(
                 # If this is route end, the next loop returns immediately.
                 if boundary >= profile.total_length_m - epsilon:
                     distances[-1] = profile.total_length_m
-                    return SimulationResult(
-                        tuple(times), tuple(distances), tuple(speeds), True, "route_end"
-                    )
+                    return result(True, "route_end")
                 distances[-1] = math.nextafter(boundary, math.inf)
 
         if times[-1] >= max_time_s - epsilon:
             break
 
-    return SimulationResult(tuple(times), tuple(distances), tuple(speeds), False, "max_time")
+    return result(False, "max_time")
