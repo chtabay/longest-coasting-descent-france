@@ -17,6 +17,7 @@ from coastdown import (
     edge_to_road_profile,
     simulate_profile,
 )
+from coastdown.textio import write_text_lf
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/fixtures/phase1_oisans_edges.json"
@@ -98,7 +99,7 @@ def svg_map(edges: list[DirectedRoadEdge], path: Path) -> None:
         '<text x="20" y="25" font-family="sans-serif">Compact Oisans Phase 1 fixture — not a ranking</text>'
     )
     lines.append("</svg>")
-    path.write_text("\n".join(lines), encoding="utf-8")
+    write_text_lf(path, "\n".join(lines))
 
 
 def svg_profile(edge: DirectedRoadEdge, path: Path, *, grade: bool = False) -> None:
@@ -117,7 +118,8 @@ def svg_profile(edge: DirectedRoadEdge, path: Path, *, grade: bool = False) -> N
         f"{50 + 700 * (x - min(xs)) / x_span:.1f},{350 - 300 * (y - min(ys)) / y_span:.1f}"
         for x, y in zip(xs, ys)
     )
-    path.write_text(
+    write_text_lf(
+        path,
         "\n".join(
             [
                 '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400">',
@@ -128,7 +130,6 @@ def svg_profile(edge: DirectedRoadEdge, path: Path, *, grade: bool = False) -> N
                 "</svg>",
             ]
         ),
-        encoding="utf-8",
     )
 
 
@@ -141,9 +142,7 @@ def main() -> None:
         "bytes": FIXTURE.stat().st_size,
         "sha256": digest(FIXTURE),
     }
-    (OUTPUT / "download_manifest.json").write_text(
-        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
-    )
+    write_text_lf(OUTPUT / "download_manifest.json", json.dumps(manifest, indent=2) + "\n")
     svg_map(edges, OUTPUT / "study_area_map.svg")
     svg_map(edges, OUTPUT / "compact_graph_map.svg")
     for edge in edges:
@@ -238,15 +237,16 @@ def main() -> None:
                     )
 
     # Offline fixture cannot honestly compare raster sources/spacings; preserve explicit NA rows.
-    (OUTPUT / "elevation_source_comparison.csv").write_text(
+    write_text_lf(
+        OUTPUT / "elevation_source_comparison.csv",
         "edge_id,source,status\nfixture,RGE_ALTI_5m,network_refresh_required\nfixture,Copernicus_GLO30,network_refresh_required\n",
-        encoding="utf-8",
     )
-    (OUTPUT / "sampling_spacing_comparison.csv").write_text(
+    write_text_lf(
+        OUTPUT / "sampling_spacing_comparison.csv",
         "spacing_m,status,reason\n2,not_run,raster_not_downloaded\n5,not_run,raster_not_downloaded\n10,not_run,raster_not_downloaded\n25,not_run,raster_not_downloaded\n",
-        encoding="utf-8",
     )
-    (OUTPUT / "phase1_report.md").write_text(
+    write_text_lf(
+        OUTPUT / "phase1_report.md",
         "# Phase 1 compact Oisans reconstruction\n\n"
         "This offline reconstruction validates typed provenance, oriented 3D profiles, structure "
         "rejection and separated simulation times. Two normal fixture edges are simulable; one "
@@ -258,7 +258,6 @@ def main() -> None:
         "`network_refresh_required` or `not_run`. See `download_manifest.json` for bounds, "
         "candidate URLs, fixture byte size and SHA-256.\n\nNo regional or national ranking is "
         "presented.\n",
-        encoding="utf-8",
     )
 
 

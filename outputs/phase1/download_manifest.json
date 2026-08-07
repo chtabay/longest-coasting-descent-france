@@ -26,8 +26,8 @@
     }
   ],
   "fixture": {
-    "path": "tests\\fixtures\\phase1_oisans_edges.json",
-    "bytes": 1251,
-    "sha256": "6ad682a0cdbb3b8c4411d0aa717b7496732eeca6e0de2c655c65c1481968109d"
+    "path": "tests/fixtures/phase1_oisans_edges.json",
+    "bytes": 1238,
+    "sha256": "d2a4b20b6cc8fa7853515edb9eba41c1ccec34b4b33d65498bc806e18b1ebbad"
   }
 }

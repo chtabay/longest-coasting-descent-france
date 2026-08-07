@@ -30,6 +30,7 @@ from coastdown.live_oisans import (
     parse_osm_directed_edges,
     sha256_bytes,
 )
+from coastdown.textio import write_text_lf
 
 BBOX = (45.02, 6.02, 45.16, 6.18)  # south, west, north, east
 OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter"
@@ -141,7 +142,7 @@ def write_map(
             "</svg>",
         ]
     )
-    path.write_text("\n".join(lines), encoding="utf-8")
+    write_text_lf(path, "\n".join(lines))
 
 
 def main() -> None:
@@ -361,7 +362,8 @@ def main() -> None:
             ],
         }
         (temporary / "data_manifest.json").write_bytes(canonical_json_bytes(manifest))
-        (temporary / "phase1b_report.md").write_text(
+        write_text_lf(
+            temporary / "phase1b_report.md",
             f"# Phase 1B live Oisans report\n\nsource = live  \nretrieved = {retrieved}  \n"
             f"OSM timestamp = {summary['osm_timestamp']}  \nOSM SHA-256 = {summary['response_sha256']}\n\n"
             f"Built {len(rows)} spacing/profile results from {len(selected)} real OSM ways and live RGE ALTI elevations. Structure edges remain review-only; terrain elevation was not assigned. This is pipeline validation, not a route ranking.\n",
