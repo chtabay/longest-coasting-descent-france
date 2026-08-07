@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 import math
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from .geography import AccessStatus, StructureStatus, lonlat_to_lambert93
 
@@ -129,7 +131,7 @@ def densify_lonlat(
     chainage = 0.0
     first_x, first_y = lonlat_to_lambert93(*points[0])
     output.append((*points[0], first_x, first_y, chainage))
-    for start, end in zip(points, points[1:]):
+    for start, end in itertools.pairwise(points):
         start_x, start_y = lonlat_to_lambert93(*start)
         end_x, end_y = lonlat_to_lambert93(*end)
         length = math.hypot(end_x - start_x, end_y - start_y)
@@ -151,7 +153,7 @@ def densify_lonlat(
 def extract_elevations(response: dict[str, Any], expected_count: int) -> tuple[float, ...]:
     raw = response.get("elevations") or response.get("elevation")
     if not isinstance(raw, list):
-        raise ValueError("Altimetry response has no elevations list.")
+        raise TypeError("Altimetry response has no elevations list.")
     elevations = tuple(
         float(item.get("z")) if isinstance(item, dict) else float(item) for item in raw
     )

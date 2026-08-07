@@ -18,7 +18,6 @@ from coastdown import (
     simulate_profile,
 )
 
-
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/fixtures/phase1_oisans_edges.json"
 OUTPUT = ROOT / "outputs/phase1"
@@ -51,7 +50,7 @@ def load_edges() -> list[DirectedRoadEdge]:
             elevation_dataset,
             "v1",
             "2026-08-06",
-            str(FIXTURE.relative_to(ROOT)),
+            FIXTURE.relative_to(ROOT).as_posix(),
             payload["crs"],
             "metre",
             checksum,
@@ -138,7 +137,7 @@ def main() -> None:
     edges = load_edges()
     manifest = json.loads((ROOT / "data/phase1_manifest.json").read_text(encoding="utf-8"))
     manifest["fixture"] = {
-        "path": str(FIXTURE.relative_to(ROOT)),
+        "path": FIXTURE.relative_to(ROOT).as_posix(),
         "bytes": FIXTURE.stat().st_size,
         "sha256": digest(FIXTURE),
     }

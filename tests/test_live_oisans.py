@@ -1,3 +1,5 @@
+import itertools
+
 import pytest
 
 from coastdown import AccessStatus, StructureStatus
@@ -55,7 +57,7 @@ def test_densification_is_deterministic_and_spacing_bounded() -> None:
     assert first == second
     assert first[0][4] == 0
     assert first[-1][4] > 70
-    assert all(after[4] - before[4] <= 25 for before, after in zip(first, first[1:]))
+    assert all(after[4] - before[4] <= 25 for before, after in itertools.pairwise(first))
 
 
 def test_altimetry_response_validation() -> None:

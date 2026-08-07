@@ -10,7 +10,7 @@ import shutil
 import tempfile
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from coastdown import (
@@ -30,7 +30,6 @@ from coastdown.live_oisans import (
     parse_osm_directed_edges,
     sha256_bytes,
 )
-
 
 BBOX = (45.02, 6.02, 45.16, 6.18)  # south, west, north, east
 OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter"
@@ -153,7 +152,7 @@ def main() -> None:
     args = parser.parse_args()
     cache = Path(args.cache)
     cache.mkdir(parents=True, exist_ok=True)
-    retrieved = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    retrieved = datetime.now(UTC).replace(microsecond=0).isoformat()
 
     discovery = {}
     for index, url in enumerate(IGN_DISCOVERY_URLS):

@@ -6,8 +6,8 @@ import argparse
 import hashlib
 import json
 import urllib.request
-from urllib.error import URLError
 from pathlib import Path
+from urllib.error import URLError
 
 
 def sha256(path: Path) -> str:

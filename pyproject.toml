@@ -11,9 +11,12 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
+# ruff is pinned exactly: its *default* rule set changes between releases, so an
+# unpinned `ruff check .` makes CI non-reproducible and can turn red without any
+# repository change. Bump this deliberately, never implicitly.
 dev = [
-  "pytest",
-  "ruff",
+  "pytest>=8,<10",
+  "ruff==0.16.1",
 ]
 geo = [
   "geopandas",

@@ -4,6 +4,11 @@ import math
 
 from .models import BicycleSystem, Environment, RoadProfile, SimulationResult
 
+# Frozen dataclasses, so a shared module-level default is safe and keeps the
+# public signature free of a call evaluated at import time.
+DEFAULT_BICYCLE = BicycleSystem()
+DEFAULT_ENVIRONMENT = Environment()
+
 
 def grade_percent_to_ratio(grade_percent: float) -> float:
     """Convert a signed road-grade percentage to a dimensionless rise/run ratio."""
@@ -109,8 +114,8 @@ def _duration_for_below_increment(
 
 def simulate_profile(
     profile: RoadProfile,
-    bicycle: BicycleSystem = BicycleSystem(),
-    environment: Environment = Environment(),
+    bicycle: BicycleSystem = DEFAULT_BICYCLE,
+    environment: Environment = DEFAULT_ENVIRONMENT,
     *,
     initial_speed_m_s: float = 15.0 / 3.6,
     time_step_s: float = 0.05,

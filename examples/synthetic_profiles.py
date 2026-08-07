@@ -122,7 +122,8 @@ def _svg_chart(
     for index, (label, xs, ys) in enumerate(series):
         color = colors[index % len(colors)]
         coordinates = " ".join(
-            f"{x:.2f},{y:.2f}" for x, y in map(lambda pair: point(*pair), zip(xs, ys))
+            f"{x:.2f},{y:.2f}"
+            for x, y in (point(x_value, y_value) for x_value, y_value in zip(xs, ys))
         )
         parts.append(
             f'<polyline fill="none" stroke="{color}" stroke-width="2" points="{coordinates}"/>'
