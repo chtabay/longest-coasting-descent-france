@@ -77,8 +77,16 @@ def build_edge_profile(
     *,
     crr_variant: str = "central",
     max_grade_ratio: float = MAX_SIMULABLE_GRADE_RATIO,
+    geometry_samples: Sequence[SamplePoint] | None = None,
 ) -> EdgeProfile:
-    """Turn geometry plus elevations into simulator input, or explain why not."""
+    """Turn geometry plus elevations into simulator input, or explain why not.
+
+    ``samples`` carries the production profile, which is deliberately coarse to
+    suppress terrain-model noise.  Curvature must not be read from it:
+    subsampling to a uniform 25 m grid drops exactly the sharp-bend vertices the
+    sampler kept, so a hairpin measured there looks like a straight line.
+    ``geometry_samples`` supplies the fine geometry for the bend search.
+    """
     if edge.surface_class is SurfaceClass.UNSUITABLE:
         return _unusable(edge, "surface class carries no rolling-resistance scenario")
     if len(samples) != len(elevations) or len(samples) < 2:
@@ -112,12 +120,13 @@ def build_edge_profile(
     if not travelled:
         return _unusable(edge, "the edge collapses to zero length")
 
+    geometry = list(geometry_samples if geometry_samples is not None else samples)
     bends = bend_radii(
-        [sample.chainage_m for sample in samples],
-        [sample.x_m for sample in samples],
-        [sample.y_m for sample in samples],
-        [sample.longitude for sample in samples],
-        [sample.latitude for sample in samples],
+        [sample.chainage_m for sample in geometry],
+        [sample.x_m for sample in geometry],
+        [sample.y_m for sample in geometry],
+        [sample.longitude for sample in geometry],
+        [sample.latitude for sample in geometry],
     )
     return EdgeProfile(
         edge_id=edge.edge_id,
@@ -192,6 +201,33 @@ class RouteCandidate:
     surface_metres: tuple[tuple[str, float], ...]
     surface_is_assumed_m: float
     edges_used: int
+    # A rider who must brake has ended the braking-free run, so the admissible
+    # time is the time at the first bend the scenario cannot hold. It equals the
+    # elapsed time when no bend is violated.
+    admissible_time_s: float = 0.0
+    turn_limited: bool = False
+
+
+def _time_at_distance(result: SimulationResult, distance: float) -> float:
+    """Elapsed time when the run first reaches a travelled distance."""
+    distances = result.distance_m
+    times = result.time_s
+    if distance <= distances[0]:
+        return times[0]
+    if distance >= distances[-1]:
+        return times[-1]
+    low, high = 0, len(distances) - 1
+    while low < high - 1:
+        middle = (low + high) // 2
+        if distances[middle] <= distance:
+            low = middle
+        else:
+            high = middle
+    span = distances[high] - distances[low]
+    if span <= 0:
+        return times[low]
+    fraction = (distance - distances[low]) / span
+    return times[low] + fraction * (times[high] - times[low])
 
 
 def _speed_lookup(result: SimulationResult):
@@ -259,6 +295,11 @@ def evaluate_route(
         offset += item.horizontal_length_m
         travelled_offset += math.fsum(item.segment_travelled_m)
     turn = evaluate_turn_constraint(bends, speed_at, scenario=lateral_scenario)
+    admissible_time = result.elapsed_time_s
+    if turn.first_violation_distance_m is not None:
+        admissible_time = min(
+            admissible_time, _time_at_distance(result, turn.first_violation_distance_m)
+        )
 
     surface: dict[str, float] = {}
     assumed = 0.0
@@ -295,6 +336,8 @@ def evaluate_route(
         surface_metres=tuple(sorted(surface.items())),
         surface_is_assumed_m=assumed,
         edges_used=len(chain),
+        admissible_time_s=admissible_time,
+        turn_limited=turn.first_violation_distance_m is not None,
     )
 
 

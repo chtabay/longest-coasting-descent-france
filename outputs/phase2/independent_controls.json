@@ -1,0 +1,67 @@
+{
+  "bbox_wgs84_south_west_north_east": [
+    45.02,
+    6.02,
+    45.16,
+    6.18
+  ],
+  "bd_topo": {
+    "attribution": "\u00a9 IGN \u2014 BD TOPO\u00ae",
+    "bd_topo_length_km": 1172.0,
+    "bd_topo_natures": {
+      "Chemin": 779,
+      "Escalier": 8,
+      "Rond-point": 77,
+      "Route empierr\u00e9e": 616,
+      "Route \u00e0 1 chauss\u00e9e": 2801,
+      "Route \u00e0 2 chauss\u00e9es": 38,
+      "Sentier": 2522
+    },
+    "elapsed_s": 11.8,
+    "endpoint": "https://data.geopf.fr/wfs/ows",
+    "features_returned": 6841,
+    "interpretation": "BD TOPO is used to test the structures OSM declares, not to replace OSM as the cycling graph: its legal cycling semantics are thinner. Length totals differ because BD TOPO carries the road register while the OSM extract also carries paths, tracks and footways.",
+    "layer": "BDTOPO_V3:troncon_de_route",
+    "licence": "Licence Ouverte / Open Licence (Etalab) 2.0",
+    "osm_highway_length_km": 1185.3,
+    "status": "compared",
+    "structures": {
+      "bd_topo_only": 63,
+      "bridge_agree": 96,
+      "bridge_osm_only": 83,
+      "match_radius_m": 30.0,
+      "tunnel_agree": 15,
+      "tunnel_osm_only": 79
+    }
+  },
+  "conclusion": "Structures without a roadway elevation remain non-simulable regardless of what either control reports; neither source supplies a deck height.",
+  "copernicus_glo30": {
+    "elapsed_s": 3.4,
+    "gross_inconsistencies_over_25m": 26,
+    "interpretation": "The mean difference is dominated by the geoid separation between EGM2008 and NGF-IGN 1969 and by the surface-versus-terrain distinction, so it is a datum offset rather than an error in either source. Only the residual scatter after removing that mean carries information, and at 30 m posting it cannot validate the grade of an individual 25 m segment.",
+    "licence": "Copernicus DEM open data terms; \u00a9 DLR e.V. 2010-2014, \u00a9 Airbus DS 2014-2018",
+    "max_abs_residual_m": 96.53,
+    "mean_difference_m": 4.75,
+    "median_difference_m": 3.46,
+    "model_kind": "surface model (includes vegetation and buildings)",
+    "p95_abs_residual_m": 16.71,
+    "points_compared": 1500,
+    "status": "compared",
+    "stdev_after_removing_mean_m": 9.02,
+    "tile_url": "https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_N45_00_E006_00_DEM/Copernicus_DSM_COG_10_N45_00_E006_00_DEM.tif",
+    "vertical_datum": "EGM2008 geoid, against NGF-IGN 1969 for RGE ALTI",
+    "worst_sectors_osm_way_ids": [
+      1246961120,
+      107161940,
+      123189416,
+      1246895765,
+      1082749713,
+      1082749709,
+      187059679,
+      61497926,
+      117643613,
+      1093032931
+    ]
+  },
+  "retrieved_at_utc": "2026-08-07T21:36:37+00:00"
+}

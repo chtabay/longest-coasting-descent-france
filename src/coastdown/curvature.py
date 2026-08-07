@@ -63,6 +63,10 @@ class TurnConstraintResult:
     violated: bool
     bend_count: int
     tightest_radius_m: float | None
+    # Distance along the route at which the rider would first have to brake.
+    # A braking-free run ends there, so this is what bounds the admissible time.
+    first_violation_distance_m: float | None = None
+    first_violation_radius_m: float | None = None
 
 
 def circumradius_m(
@@ -166,6 +170,12 @@ def evaluate_turn_constraint(
             worst_excess = excess
             worst = (bend, speed, required)
     tightest = min(bend.radius_m for bend in bends)
+    first_violation: BendObservation | None = None
+    for bend in sorted(bends, key=lambda item: item.chainage_m):
+        speed = speed_at_chainage(bend.chainage_m)
+        if speed is not None and speed * speed / bend.radius_m > limit:
+            first_violation = bend
+            break
     if worst is None:
         return TurnConstraintResult(
             scenario, limit, None, None, None, None, None, None, False, len(bends), tightest
@@ -183,4 +193,10 @@ def evaluate_turn_constraint(
         violated=required > limit,
         bend_count=len(bends),
         tightest_radius_m=tightest,
+        first_violation_distance_m=(
+            first_violation.chainage_m if first_violation is not None else None
+        ),
+        first_violation_radius_m=(
+            first_violation.radius_m if first_violation is not None else None
+        ),
     )

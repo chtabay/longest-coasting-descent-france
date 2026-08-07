@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="380">
+<rect width="100%" height="100%" fill="white"/>
+<text x="20" y="24" font-family="sans-serif" font-size="14">paved_reference rank 2: 388 s, 746 m, -2 m net</text>
+<line x1="70" y1="330" x2="880" y2="330" stroke="#333"/>
+<line x1="70" y1="30" x2="70" y2="330" stroke="#333"/>
+<polyline points="70.0,40.0 89.4,61.1 96.8,51.8 112.0,71.4 125.7,96.1 139.0,114.2 153.9,111.1 157.4,105.9 176.7,121.4 189.8,128.1 236.6,155.9 646.9,330.0 880.0,168.8" fill="none" stroke="#2166ac" stroke-width="2"/>
+<text x="70" y="362" font-family="sans-serif" font-size="11">0 m</text>
+<text x="810" y="362" font-family="sans-serif" font-size="11">1042 m</text>
+<text x="12" y="40" font-family="sans-serif" font-size="11">724 m</text>
+<text x="12" y="330" font-family="sans-serif" font-size="11">718 m</text>
+</svg>

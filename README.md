@@ -30,8 +30,25 @@ PYTHONPATH=src python scripts/phase1b_live_oisans.py
 The offline suite never touches the network: `tests/conftest.py` refuses every outbound socket,
 and the reconstruction is exercised against verbatim frozen extracts of real responses.
 
-No regional or national winner is claimed. The selected ways are a stratified validation sample,
-not a ranking.
+Phase 2 complete: a routable regional Oisans graph with bicycle-usability classes,
+surface-dependent rolling resistance, a measured choice of elevation-profile method, a
+lateral-acceleration constraint on bends, an exhaustive coasting search validated against brute
+force, and an experimental regional ranking with its sensitivity. See
+`outputs/phase2/phase2_report.md`.
+
+```bash
+PYTHONPATH=src python scripts/phase2_acquire_elevations.py   # network, resumable
+PYTHONPATH=src python scripts/phase2_profile_method_study.py # offline
+PYTHONPATH=src python scripts/phase2_regional_search.py      # offline
+PYTHONPATH=src python scripts/phase2_independent_controls.py # network
+```
+
+**Phase 2's main result is negative.** Ranked by elapsed coasting time, the leading candidate is
+734 m long and drops 1.8 m: maximising time rewards near-equilibrium creeping rather than
+descending, and the order is unstable under rolling resistance. The ranking is a validation
+instrument, not a list of the best descents.
+
+No regional or national winner is claimed.
 
 ## Core definition, provisional
 

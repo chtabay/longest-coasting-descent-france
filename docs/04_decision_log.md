@@ -102,3 +102,85 @@ that are in part the same one.
 single village import, all benign, which validated nothing. Highway class and hairpin count are
 properties of the road register and of geometry, not of coasting time, so neither can bias the
 ranking the study will eventually produce.
+
+## D-014 — Legal cyclability is not usability
+
+**Decision:** grade every way into `paved_reference`, `reference_vtc`, `extended_vtc`,
+`excluded` or `review` from highway, surface, smoothness, tracktype, mtb:scale, bicycle,
+access and vehicle. Rank on `paved_reference` first, then `reference_vtc`.
+
+**Reason:** Phase 1B admitted OSM way 708124926 — a `highway=cycleway` with `surface=dirt`,
+`mtb:type=downhill` and `mtb:scale=2` — alongside a departmental road, because both are legally
+cyclable. A downhill mountain-bike trail is not a route for a standard hybrid bicycle, and no
+amount of physics downstream repairs an admissibility model that cannot tell them apart.
+
+## D-015 — A missing surface tag is assumed sealed on a classified road, and charged for it
+
+**Decision:** a mainland `primary`/`secondary`/`tertiary`/`unclassified`/`residential` way with
+no `surface` tag enters `reference_vtc` with `surface_is_assumed` set and the degraded-asphalt
+rolling-resistance scenario, never `paved_reference`.
+
+**Reason:** 2 900 of 4 514 ways carry no surface tag. Refusing all of them would gut the study;
+accepting them as good asphalt would grant a quality nobody recorded. Paying for the assumption
+in the physics keeps the ranking honest and keeps `paved_reference` a genuinely evidence-based
+subset. The conservative doctrine is not relaxed for `track`, which is why 557.6 km stays in
+`review`.
+
+## D-016 — Rolling resistance is a surface scenario, not a constant
+
+**Decision:** five surface classes, each with a central coefficient and an explicit low/high
+interval that the sensitivity analysis sweeps. Two significant figures at most.
+
+**Reason:** rolling resistance dominates the end of a coast and varies by roughly an order of
+magnitude between asphalt and dirt: on a 3 % descent, asphalt completes a 2 km run in 261 s
+while dirt stops after 715 m. No coast-down test was performed for this study, so the unpaved
+values are bounded from the published range rather than measured, and their intervals say so.
+
+## D-017 — The production elevation method is chosen by measurement
+
+**Decision:** `raw_25m`, selected over `raw_10m`, `adaptive_geometry`, `robust_median_local` and
+`net_dz_constrained` on 400 real edges.
+
+**Reason:** applying the declared criteria in order eliminates the robust filter on elevation
+conservation (0.425 m median loss) and the adaptive method on noise (1 572 implausible segments
+against 257). Temporal stability does not discriminate — every method's elapsed time moves by
+about 0.04 % between a 0.01 s and a 0.10 s step. `raw_25m` wins on implausible segments, on
+hairpin grades and on simulable share, at an exact elevation budget.
+
+## D-018 — Curvature is read from the fine geometry, never from the production profile
+
+**Decision:** bends are measured on the 5 m base samples; the 25 m profile feeds the simulator
+only.
+
+**Reason:** subsampling to a uniform 25 m grid drops precisely the sharp-bend vertices the
+sampler retained. Measured on the production profile the paved graph showed 3 916 bends; measured
+on the base geometry it shows 44 994, of which 2 717 are under 15 m radius. The turn constraint
+was almost blind, and the ranking it produced was wrong.
+
+## D-019 — A route ends where the rider would have to brake
+
+**Decision:** the admissible time of a candidate is the time at the first bend whose required
+lateral acceleration exceeds the scenario limit, not the time to the bottom.
+
+**Reason:** the reference event forbids braking, so a run that demands it has ended. Discarding
+such routes entirely would lose the information; extending them to the bottom would report a time
+the rider cannot achieve.
+
+## D-020 — Each way piece is traversed at most once per route
+
+**Decision:** the cycle rule bans re-entering a way piece in either direction within one route.
+
+**Reason:** without it a rider could shuttle back and forth across a dip and accumulate unbounded
+time, so the search would measure its own patience rather than the terrain. The rule is stricter
+than "no repeated directed edge" because both directions of a piece are the same shuttle.
+
+## D-021 — Phase 2 does not produce a usable ranking, and says so
+
+**Decision:** publish the regional Top 20 as a validation instrument and state that the objective
+is degenerate, rather than presenting the leaders as the best descents in the Oisans.
+
+**Reason:** ranked by elapsed time, the leading `paved_reference` candidate is 734 m long and
+drops 1.8 m at a mean of 6.3 km/h. Both the low and the high rolling-resistance bounds *reduce*
+its time, by 18 % and 51 %: it is optimal only at the central coefficient, and only because it is
+near equilibrium there. Maximising elapsed time rewards creeping, not descending. Phase 3 needs a
+discriminating objective chosen deliberately.
