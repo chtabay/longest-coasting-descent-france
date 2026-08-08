@@ -46,7 +46,11 @@ from coastdown.textio import write_text_lf
 PRODUCTION_METHOD = "raw_25m"
 SCENARIOS = ("paved_reference", "reference_vtc")
 TOP_N = 20
-MAX_EXPANSIONS = 5_000
+# Every seed of both scenarios finishes inside this. The five `reference_vtc`
+# seeds that once ran out of allowance needed 6 050 to 10 100 expansions, so a
+# 5 000 cap left the baseline non-exhaustive and a separate script had to close
+# it. A cap that no seed reaches is the only kind that can be ignored.
+MAX_EXPANSIONS = 20_000
 SCREENING_OFFSET_STEP_M = 100.0
 REFINING_OFFSET_STEP_M = 25.0
 

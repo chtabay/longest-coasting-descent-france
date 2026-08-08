@@ -250,16 +250,32 @@ highway ways carry a structure tag or a non-zero layer (179 bridges, 60 tunnels,
 elevation is the single change that would most affect a distance ranking, and it is not a
 modelling refinement — it needs a source that gives the roadway height rather than the ground's.
 
-### Open reserve: 5 unfinished VTC seeds
+### 4.2 The five unfinished VTC seeds — closed
 
-Five `reference_vtc` seeds exhaust the 5 000-expansion production budget. A seed that runs out of
+Five `reference_vtc` seeds exhausted the 5 000-expansion production budget. A seed that runs out of
 allowance rather than out of graph has **not been answered**: its distance is a lower bound on its
-own optimum. Until they are closed, the VTC baseline is exhaustive for 3 846 of 3 851 seeds and no
-more, and the 6 291.2 m figure cannot be called a regional maximum even within the extract.
-`scripts/phase3_resolve_budget_limited.py` identifies them and re-runs only those, raising the
-allowance until each walk ends because it ran out of graph rather than out of budget; a seed that
-stays unfinished at the highest allowance tried is reported as unfinished with its expansion count,
-never truncated silently.
+own optimum, and a baseline containing one is not exhaustive.
+
+`scripts/phase3_resolve_budget_limited.py` walks every seed once to find them, then re-runs only
+those with a rising allowance until the walk ends because it ran out of graph. All five closed at
+the first step (`budget_limited_reference_vtc.json`):
+
+| seed | expansions needed | best distance |
+|---|---:|---:|
+| `osm-119440073-0-forward` | 6 050 | 3 602.9 m |
+| `osm-119440074-1-forward` | 8 952 | 3 670.4 m |
+| `osm-119558959-0-forward` | 10 097 | 3 744.8 m |
+| `osm-28452295-0-reverse` | 10 097 | 3 896.5 m |
+| `osm-28452295-1-reverse` | 10 100 | 3 961.7 m |
+
+**0 seeds now stand unresolved.** None of the five reaches the Top 20 — rank 20 is 4 954.5 m — and
+none comes near 6 291.2 m. The reserve is closed without moving the ranking, but it had to be
+closed rather than assumed: the whole point of the exercise is that an unanswered seed is not a
+small answer.
+
+They needed between 6 050 and 10 100 expansions, barely above the production cap. **The cap is
+therefore raised to 20 000**, which finishes every seed of both scenarios in one pass, so the
+baseline no longer depends on a second script to be exhaustive.
 
 ## 5. Start point — remeasured, and the earlier gain retracted
 
@@ -320,6 +336,84 @@ The two together fall from a projected 3 h 45 to 17 minutes — which is essenti
 4 h 46 the corrected rerun took, since the two regional rankings and the validation account for
 about twenty minutes between them. The cost came from re-running an identical search, not from the
 correctness fix.
+
+## 5bis. The trip rule: what "each way piece once" is worth
+
+The rule
+
+> each physical way piece is traversed at most once, whichever direction
+
+is a **definition of what a trip is**, not a physical claim. It cannot be justified by the physics
+and it cannot be dropped quietly, so it is measured: `allow_cycles` lifts it in the engine, in the
+oracle and in the global ranking, with everything else held fixed — same extract, same elevations,
+same profile, same bends, same turn restrictions, same physics, same engine.
+
+One thing the rule does **not** do: permit a U-turn. `continuations` already refuses to re-enter
+the way piece just traversed, as a separate rule, so lifting the trip rule enables genuine loops
+and nothing else.
+
+### Are there cycles at all?
+
+Asked first and separately, because a null physical result on a network with no loops would say
+nothing. Strongly connected components of the real continuation graph (`cycle_topology.json`):
+
+| | directed edges | components with a cycle | edges inside one |
+|---|---:|---:|---:|
+| `paved_reference` | 2 429 | 21 | 880 (**36.2 %**) |
+| `reference_vtc` | 3 919 | 26 | 1 949 (**49.7 %**) |
+
+The largest spans 376 edges over 126 ways around Avenue de Brandes. Cycles are not scarce here;
+half the VTC network sits inside one.
+
+### Can a coasting bicycle use them?
+
+Almost never, and the reason is physical rather than topological: closing a cycle means regaining
+the elevation just spent, and a bicycle that is only coasting usually cannot.
+
+| | seeds compared | seeds where repetition helps | largest gain | median expansion blow-up |
+|---|---:|---:|---:|---:|
+| `paved_reference` | 64 | **1** | +22.7 m (+8.05 %) | ×1.0 |
+| `reference_vtc` | 34 | **3** | **+162.0 m** (+2.58 %) | ×1.0 |
+
+A median blow-up of ×1.0 means that on most seeds the lapping walk explores *precisely the same
+tree*: no admissible continuation was ever one the rule had blocked.
+
+**But the exceptions land where it hurts.** The largest is the VTC leader's own seed:
+6 291.2 m → **6 453.3 m**, +162.0 m, repeating three traversals, for ×5.17 the expansions. The VTC
+record is therefore **not stable under the change of definition**, and the rule cannot be called
+free.
+
+### Is a regional run with repetition affordable?
+
+For `paved_reference`, yes, and it changes nothing:
+
+| | expansions | runtime | budget-limited seeds | best |
+|---|---:|---:|---:|---:|
+| once per way piece | 16 877 | 423.4 s | 0 | 4 494.8 m |
+| repetition allowed | 25 625 | 607.6 s | 0 | **4 494.8 m** — same route, no repeated edge |
+
+×1.52 the expansions and ×1.44 the wall time, with the budget never binding. That is a
+computation, not a fantasy.
+
+### Does the engine still find the optimum once the rule is gone?
+
+**93 oracle checks with repetition allowed, 0 disagreements.** This is the case where a pruning
+defect would have been easiest to miss, because lifting the rule multiplies the branching factor.
+On synthetic graphs the mode is exercised on a flat loop, a loop too steep to complete, a loop
+under two lateral limits, a loop left through a rising exit where leaving too early and too late
+are both wrong, a loop with two exits, and a finiteness sweep across five lap grades.
+
+### The bound that makes the mode safe, and where it stops holding
+
+Every closed cycle returns the bicycle to the same elevation, so gravity nets to zero while rolling
+resistance and drag only remove energy. Repetition is therefore self-limiting: the number of laps
+is finite and the walk ends on its own with the budget untouched.
+
+**That argument assumes the windless reference environment.** Under a wind able to supply energy
+the aerodynamic term becomes a source over part of the lap, a closed cycle may return more than it
+received, and neither the finiteness of the lap count nor the termination of the search is
+guaranteed. Any wind scenario must re-establish its own bound before repetition may be allowed
+under it. The cycle invariants in `tests/test_phase3_distance.py` say so.
 
 ## 6. Sensitivity: is distance more robust than time?
 
