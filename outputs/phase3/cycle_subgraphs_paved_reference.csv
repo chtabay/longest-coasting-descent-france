@@ -1,0 +1,8 @@
+seed_edge_id,osm_way_id,name,strict_distance_m,strict_expansions,strict_exhausted,cycles_distance_m,cycles_expansions,cycles_exhausted,cycles_runtime_s,gain_m,relative_gain,repeated_traversals,max_traversals_of_one_edge,identical_path,expansion_blowup,oracle_checked,oracle_agrees,oracle_routes,group
+osm-49164994-0-forward,49164994,Rue de Piégut,4494.85,27,False,4494.85,27,False,1.99,0.0,0.0,0,1,True,1.0,False,,,corridor
+osm-49164999-0-reverse,49164999,Rue du Col,3809.79,17,False,3809.79,17,False,1.19,0.0,0.0,0,1,True,1.0,False,,,corridor
+osm-1018237136-0-reverse,1018237136,service,3679.66,26,False,3679.66,26,False,1.39,0.0,0.0,0,1,True,1.0,False,,,corridor
+osm-39182590-0-reverse,39182590,Route de Sardonne,2798.0,3,False,2798.0,3,False,0.19,0.0,0.0,0,1,True,1.0,False,,,corridor
+osm-1007287274-0-forward,1007287274,Route des Lacs,975.25,3,False,975.25,3,False,0.11,0.0,0.0,0,1,True,1.0,True,True,3,sample
+osm-165377595-0-forward,165377595,D 220,4.05,1,False,4.05,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-28477536-1-reverse,28477536,Rue de Belledonne,136.67,9,False,136.67,9,False,0.11,0.0,0.0,0,1,True,1.0,True,True,9,sample

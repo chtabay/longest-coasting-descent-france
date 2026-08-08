@@ -1,0 +1,102 @@
+{
+  "bends": {
+    "binding_segments": 19,
+    "braking_distance_m": 319.9,
+    "braking_substeps": 873
+  },
+  "distinct_ways": 8,
+  "edge_ids": [
+    "osm-49164994-0-forward",
+    "osm-49164994-1-forward",
+    "osm-49164994-2-forward",
+    "osm-186907705-1-forward",
+    "osm-935439941-0-forward",
+    "osm-187059537-0-forward",
+    "osm-187059537-1-forward",
+    "osm-187059537-2-forward",
+    "osm-186901645-1-reverse",
+    "osm-186901645-0-reverse",
+    "osm-186901646-3-reverse",
+    "osm-186901646-2-reverse",
+    "osm-186901646-1-reverse",
+    "osm-186901646-0-reverse",
+    "osm-760412724-0-forward",
+    "osm-760412724-1-forward",
+    "osm-760412724-2-forward",
+    "osm-222919304-0-forward"
+  ],
+  "edges_used": 18,
+  "energy_j": {
+    "braking_dissipated_j": 52020.6,
+    "drag_dissipated_j": 166150.1,
+    "final_kinetic_j": 0.0,
+    "gravity_released_j": 241109.8,
+    "initial_kinetic_j": 794.3,
+    "residual_j": 10.0,
+    "residual_relative": 0.0,
+    "rolling_dissipated_j": 23723.4,
+    "total_consumed_j": 241894.1,
+    "total_supplied_j": 241904.1
+  },
+  "geometry": {
+    "ascent_m": 15.95,
+    "descent_m": 296.21,
+    "end_elevation_m": 1355.86,
+    "end_lat": 45.047246,
+    "end_lon": 6.084524,
+    "net_dz_m": -280.26,
+    "start_elevation_m": 1636.12,
+    "start_lat": 45.052416,
+    "start_lon": 6.076533
+  },
+  "kinematics": {
+    "distance_m": 4494.85,
+    "elapsed_time_s": 490.5,
+    "final_speed_km_h": 0.0,
+    "max_free_speed_km_h": 55.12,
+    "max_speed_km_h": 55.12,
+    "mean_speed_km_h": 32.99,
+    "min_speed_before_stop_km_h": 0.09,
+    "moving_time_s": 490.5,
+    "restart_count": 0
+  },
+  "osm_way_ids": [
+    49164994,
+    186901645,
+    186901646,
+    186907705,
+    187059537,
+    222919304,
+    760412724,
+    935439941
+  ],
+  "rank": 1,
+  "scenario": "paved_reference",
+  "structures": {
+    "bridges": [],
+    "covered": [],
+    "metres_by_status": {
+      "normal": 4677.7
+    },
+    "non_zero_layer": [],
+    "tracks": [],
+    "tunnels": [],
+    "unpaved": []
+  },
+  "surface": {
+    "explicitly_tagged_asphalt_share": 1.0,
+    "inferred_share": 0.0,
+    "metres_by_class": {
+      "asphalt_good": 4677.7
+    },
+    "share_by_class": {
+      "asphalt_good": 1.0
+    }
+  },
+  "termination": {
+    "energy_limited": true,
+    "reading": "the bicycle ran out of energy where the road still continued",
+    "search_termination": "definitive_stop",
+    "stop_reason": "definitive_stop"
+  }
+}

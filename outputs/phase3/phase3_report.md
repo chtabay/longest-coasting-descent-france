@@ -182,21 +182,73 @@ on what their corridor delivers, not measurements of it.
 Full table in `top20_vtc.csv`.
 
 **The VTC record is not an energy-limited result and must not be read as one.** All ten leading
-routes terminate at `network_end`, all share the same −443.3 m net drop, and the leader still
-carries **8.6 km/h** when the admitted graph runs out. They are ten variants threading the same
-descent from Route des Lacs. The figure is therefore a **lower bound on that corridor**, not a
-measurement of where the bicycle stops. Of the VTC top 20, 10 stop definitively and 10 end at the
-network.
+routes terminate at `network_end` and all share the same −443.3 m net drop: they are ten variants
+threading the same descent from Route des Lacs. The leader reaches the end of the admitted graph
+still travelling at **56.8 km/h**. The figure is therefore a **lower bound on that corridor**, not
+a measurement of where the bicycle stops. Of the VTC top 20, 10 stop definitively and 10 end at
+the network.
 
-The end point (45.086881, 6.058396) sits well inside the extract — the bounding box runs to
-longitude 6.02, some 3 km further west — so the route is cut by a real dead end in the admitted
-graph, not by the edge of the download. Which dead end, and whether the continuations there were
-excluded by usability rather than absent, is settled in the manual audit of §4.1.
+The end point (45.086881, 6.058396) sits some 3 km inside the extract boundary, so this is not the
+edge of the download. §4.1 identifies exactly what severs it: an 8.3 m `layer=-1` underpass on the
+D 211, correctly excluded by the structure rule.
 
 **A third of the VTC leader's surface is inferred, not tagged** (34.3 %, split
 `asphalt_good` 66 % / `asphalt_degraded` 34 %). The paved leader is 100 % explicitly tagged
 asphalt. The two records are therefore not equally well evidenced, and the VTC one inherits the
 uncertainty of the surface inference on top of everything else.
+
+### 4.1 Manual audit of the two leaders
+
+Both leaders were audited edge by edge and joule by joule
+(`scripts/phase3_audit_leader.py`, outputs in `outputs/phase3/audit/`). The energy budget is
+**reconstructed from the trajectory**, summing the work of each force over the run's own samples,
+so it is a check on the integrator rather than a restatement of it.
+
+| | `paved_reference` rank 1 | `reference_vtc` rank 1 |
+|---|---:|---:|
+| Distance | 4 494.85 m | **6 291.22 m** |
+| Edges / distinct OSM ways | 18 / — | 61 / 39 |
+| Start | 45.052416, 6.076533 · 1 636.1 m | 45.107316, 6.081466 · 2 043.3 m |
+| End | 45.047246, 6.084524 · 1 355.9 m | 45.086881, 6.058396 · 1 600.0 m |
+| Net Δz / descent / ascent | −280.3 / 296.2 / 15.9 m | −443.3 / 450.8 / 7.5 m |
+| Duration | 490.5 s | 710.7 s |
+| Mean / max speed | 33.0 / 55.1 km/h | 31.9 / 68.3 km/h |
+| **Speed at the end** | **0.0 km/h** | **56.8 km/h** |
+| Initial kinetic energy | 0.8 kJ | 0.8 kJ |
+| Gravity released | 241.1 kJ | 391.2 kJ |
+| Rolling dissipated | 23.7 kJ (9.8 %) | 40.8 kJ (10.4 %) |
+| Drag dissipated | 166.2 kJ (68.7 %) | 246.0 kJ (62.8 %) |
+| Braking dissipated | 52.0 kJ (21.5 %) | 93.9 kJ (24.0 %) |
+| Kinetic energy left at the end | 0.0 kJ | **11.4 kJ** |
+| **Energy-budget residual** | **+0.004 %** | **+0.000 %** |
+| Binding bends | 19 | 32 |
+| Surface explicitly tagged asphalt | **100 %** | 65.7 % |
+| Surface inferred | 0 % | **34.3 %** |
+| Bridges / tunnels / covered / layer≠0 | none | none |
+| Tracks / unpaved | none | none |
+| Termination | **definitive physical stop** | **network end** |
+
+Drag is the dominant sink on both — roughly two thirds of everything gravity releases — with
+braking about a quarter and rolling resistance a tenth. That ordering is what a 15 km/h start into
+a long fast descent should produce, and it is a useful sanity check on the physics: nothing here
+is being won by an implausible rolling model.
+
+**The paved leader is a real result.** It descends from Alpe d'Huez, uses 18 edges of explicitly
+tagged asphalt, crosses no structure, and ends at 0.0 km/h having spent everything gravity gave it.
+
+**The VTC leader is stopped by an 8.3 m gap in the model, not by physics.** It arrives at the end
+of the admitted graph carrying **56.8 km/h and 11.4 kJ**. The road does not end there: the D 211
+continues through OSM way 1453146526, which is 8.3 m long and tagged `layer=-1` — an underpass.
+The preserved Phase 1B rule forbids giving a bridge, tunnel, covered way or non-zero layer a
+terrain elevation, so that way is admitted to no graph and the corridor is severed at its mouth.
+
+This is the rule working as designed, not a defect, and it must not be relaxed to make the number
+larger. But it does fix how the figure may be read: **6 291.2 m is a lower bound on that corridor,
+cut by an 8.3 m structure, and the corridor demonstrably continues.** Across the extract, 277
+highway ways carry a structure tag or a non-zero layer (179 bridges, 60 tunnels, 21 covered,
+17 layer≠0); 275 of them produce no graph edge at all, removing **10.87 km** of road. Structure
+elevation is the single change that would most affect a distance ranking, and it is not a
+modelling refinement — it needs a source that gives the roadway height rather than the ground's.
 
 ### Open reserve: 5 unfinished VTC seeds
 
@@ -324,7 +376,8 @@ ranked routes does.
   distances are lower bounds on their own optima and the VTC baseline is exhaustive for 3 846 of
   3 851 seeds. Until they close, 6 291.2 m is not a regional maximum even within the extract.
 - **The VTC record is network-limited, not energy-limited.** The whole VTC top 10 ends at
-  `network_end`; the leader still carries 8.6 km/h when the admitted graph runs out. It bounds its
+  `network_end`; the leader reaches the end of the admitted graph still travelling at 56.8 km/h,
+  severed by an 8.3 m `layer=-1` underpass the structure rule correctly excludes. It bounds its
   corridor from below and nothing more.
 - **A third of the VTC leader's surface is inferred** (34.3 %), against 0 % for the paved leader.
   The two records are not equally well evidenced.

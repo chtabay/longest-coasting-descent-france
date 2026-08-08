@@ -30,12 +30,11 @@ from coastdown.curvature import LATERAL_LIMIT_SCENARIOS_M_S2
 from coastdown.distance_search import (
     DistanceBudget,
     DistanceRoute,
+    StartPointStudy,
     evaluate_distance_route,
     exhaustive_routes,
     global_longest,
     search_distance_from_edge,
-    start_offsets,
-    trim_edge_profile,
 )
 from coastdown.elevation_profile import build_profile
 from coastdown.elevation_store import elevations_for, load_store
@@ -335,56 +334,6 @@ def profile_svg(profiles: dict[str, EdgeProfile], route: DistanceRoute, title: s
     )
 
 
-def optimise_start(
-    graph: RoutableGraph,
-    profiles: dict[str, EdgeProfile],
-    route: DistanceRoute,
-    step_m: float,
-) -> tuple[float, float]:
-    """Best in-edge start offset for one route, and the distance it gains.
-
-    The baseline is measured with the SAME procedure as the candidates, at
-    offset zero. Comparing a candidate search against ``route.distance_m``
-    manufactured the whole reported gain: ``route`` is a *distinct-ranked*
-    route, while ``search_distance_from_edge(keep_best=1)`` returns the seed's
-    own best route, which is a different and usually longer one. On the two
-    published seeds the difference between those two numbers was exactly the
-    "gain" reported (4494.85 - 4178.98 = 315.87 m), and the true answer at every
-    offset was that starting later only removes road.
-    """
-    seed_id = route.edge_ids[0]
-    seed = profiles[seed_id]
-    baseline, baseline_budget = search_distance_from_edge(
-        graph, profiles, seed_id, budget=DistanceBudget(max_expansions=MAX_EXPANSIONS), keep_best=1
-    )
-    if baseline_budget.exhausted or not baseline:
-        return 0.0, 0.0
-    best_offset = 0.0
-    best_distance = baseline[0].distance_m
-    reference = best_distance
-    for offset in start_offsets(seed, step_m):
-        if offset <= 0:
-            continue
-        try:
-            trim_edge_profile(seed, offset)
-        except ValueError:
-            continue
-        found, budget = search_distance_from_edge(
-            graph,
-            profiles,
-            route.edge_ids[0],
-            start_offset_m=offset,
-            budget=DistanceBudget(max_expansions=MAX_EXPANSIONS),
-            keep_best=1,
-        )
-        if budget.exhausted or not found:
-            continue
-        if found[0].distance_m > best_distance:
-            best_distance = found[0].distance_m
-            best_offset = offset
-    return best_offset, best_distance - reference
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--overpass-cache", default=".cache/phase1b-live/oisans-overpass.json")
@@ -545,14 +494,21 @@ def main() -> None:
 
     # --- start point ---------------------------------------------------------
     start_rows = []
+    start_cost: dict[str, object] = {}
     for scenario, top in tops.items():
+        study = StartPointStudy(
+            graphs[scenario],
+            profile_sets[scenario],
+            budget_factory=lambda: DistanceBudget(max_expansions=MAX_EXPANSIONS),
+        )
+        study_started = time.monotonic()
+        seeds = [route.edge_ids[0] for route in top[:10]]
+        uncached = study.searches_without_caching(
+            seeds, (SCREENING_OFFSET_STEP_M, REFINING_OFFSET_STEP_M)
+        )
         for rank, route in enumerate(top[:10], start=1):
-            screen_offset, screen_gain = optimise_start(
-                graphs[scenario], profile_sets[scenario], route, SCREENING_OFFSET_STEP_M
-            )
-            fine_offset, fine_gain = optimise_start(
-                graphs[scenario], profile_sets[scenario], route, REFINING_OFFSET_STEP_M
-            )
+            screen_offset, screen_gain = study.optimise(route.edge_ids[0], SCREENING_OFFSET_STEP_M)
+            fine_offset, fine_gain = study.optimise(route.edge_ids[0], REFINING_OFFSET_STEP_M)
             start_rows.append(
                 {
                     "scenario": scenario,
@@ -570,7 +526,25 @@ def main() -> None:
                     ),
                 }
             )
+        start_cost[scenario] = {
+            "routes_studied": len(top[:10]),
+            "distinct_seeds": len(set(seeds)),
+            "searches_without_caching": uncached,
+            "searches_performed": study.searches,
+            "searches_avoided": uncached - study.searches,
+            "cache_hits": study.cache_hits,
+            "runtime_s": round(time.monotonic() - study_started, 1),
+        }
+        print(
+            f"[{scenario}] start point: {study.searches} searches instead of {uncached}, "
+            f"{len(set(seeds))} distinct seeds among {len(top[:10])} routes, "
+            f"{start_cost[scenario]['runtime_s']}s",
+            flush=True,
+        )
     write_csv(output / "start_point_strategy.csv", start_rows)
+    write_text_lf(
+        output / "start_point_cost.json", json.dumps(start_cost, indent=2, sort_keys=True) + "\n"
+    )
     gains = [row["refining_relative_gain"] for row in start_rows]
     print(f"start point: max relative gain {max(gains) if gains else 0:.1%}")
 

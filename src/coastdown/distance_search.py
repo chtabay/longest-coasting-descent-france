@@ -866,6 +866,112 @@ def global_longest(
     ]
 
 
+class StartPointStudy:
+    """Best in-edge start offset per seed, evaluating each search exactly once.
+
+    The baseline is measured with the SAME procedure as the candidates, at
+    offset zero. Comparing a candidate search against a ranked route's distance
+    manufactured the whole gain once reported: a ranked route is a *distinct*
+    route, while ``search_distance_from_edge(keep_best=1)`` returns the seed's
+    own best route, which is a different and usually longer one. On the two
+    seeds once published, the difference between those two numbers was exactly
+    the "gain" reported (4494.85 - 4178.98 = 315.87 m).
+
+    The arithmetic here is unchanged; only the number of times it is performed.
+    The answer depends on the *seed*, not on the route, and ranked routes share
+    seeds heavily — a whole regional top ten can start on one edge, in which
+    case the naive version runs the identical study ten times. It also
+    re-measured offset zero for every pass and re-evaluated at the fine step
+    every offset it had already evaluated at the coarse one.
+
+    Every result is memoised on ``(seed, offset)``, and both passes read the
+    same cache. No offset is dropped and no comparison is approximated: each
+    pass still scans its own full offset set, so the numbers are identical to
+    the uncached study by construction rather than by hope.
+
+    Zero gain is a *measurement*, never an assumption. Starting later means
+    restarting at the initial speed from the new point, so discarding an
+    unfavourable prefix — a rise, an early bend that costs speed — genuinely can
+    extend the total. The optimiser is written so that it can say so.
+    """
+
+    def __init__(
+        self,
+        graph: RoutableGraph,
+        profiles: dict[str, EdgeProfile],
+        *,
+        budget_factory: Callable[[], DistanceBudget] | None = None,
+        **search_kwargs,
+    ) -> None:
+        self.graph = graph
+        self.profiles = profiles
+        self._budget_factory = budget_factory or DistanceBudget
+        self._search_kwargs = search_kwargs
+        self._distance: dict[tuple[str, float], float | None] = {}
+        self._best: dict[tuple[str, float], tuple[float, float]] = {}
+        self.searches = 0
+        self.cache_hits = 0
+
+    def distance_at(self, seed_id: str, offset: float) -> float | None:
+        """Distance of the seed's best route when it starts ``offset`` into it.
+
+        ``None`` means the offset yields no answer at all — it consumes the
+        whole edge, or the walk ran out of budget. An unanswered offset is
+        skipped, never treated as a zero.
+        """
+        key = (seed_id, offset)
+        if key in self._distance:
+            self.cache_hits += 1
+            return self._distance[key]
+        if offset > 0:
+            try:
+                trim_edge_profile(self.profiles[seed_id], offset)
+            except ValueError:
+                self._distance[key] = None
+                return None
+        found, budget = search_distance_from_edge(
+            self.graph,
+            self.profiles,
+            seed_id,
+            start_offset_m=offset,
+            budget=self._budget_factory(),
+            keep_best=1,
+            **self._search_kwargs,
+        )
+        self.searches += 1
+        value = None if (budget.exhausted or not found) else found[0].distance_m
+        self._distance[key] = value
+        return value
+
+    def optimise(self, seed_id: str, step_m: float) -> tuple[float, float]:
+        """Best offset for one seed at one step, and the distance it gains."""
+        key = (seed_id, step_m)
+        if key in self._best:
+            return self._best[key]
+        reference = self.distance_at(seed_id, 0.0)
+        if reference is None:
+            self._best[key] = (0.0, 0.0)
+            return self._best[key]
+        best_offset, best_distance = 0.0, reference
+        for offset in start_offsets(self.profiles[seed_id], step_m):
+            if offset <= 0:
+                continue
+            value = self.distance_at(seed_id, offset)
+            if value is not None and value > best_distance:
+                best_distance = value
+                best_offset = offset
+        self._best[key] = (best_offset, best_distance - reference)
+        return self._best[key]
+
+    def searches_without_caching(self, seeds: Sequence[str], steps: Sequence[float]) -> int:
+        """What the uncached study would have cost, for the record."""
+        return sum(
+            1 + sum(1 for offset in start_offsets(self.profiles[seed_id], step_m) if offset > 0)
+            for seed_id in seeds
+            for step_m in steps
+        )
+
+
 def start_offsets(profile: EdgeProfile, step_m: float) -> tuple[float, ...]:
     """Candidate in-edge start offsets, on segment boundaries.
 

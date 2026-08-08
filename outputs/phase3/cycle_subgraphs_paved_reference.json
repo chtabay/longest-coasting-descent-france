@@ -1,0 +1,17 @@
+{
+  "caveat": "a seed whose budget was exhausted yields a lower bound on its own answer with repetition allowed; gains measured on such seeds are lower bounds too",
+  "largest_absolute_gain_m": 0.0,
+  "largest_relative_gain": 0.0,
+  "max_expansion_blowup": 1.0,
+  "max_expansions_per_seed": 20000,
+  "max_traversals_of_one_edge": 1,
+  "median_expansion_blowup": 1.0,
+  "oracle_checked_seeds": 3,
+  "oracle_disagreements": 0,
+  "runtime_s": 10.6,
+  "scenario": "paved_reference",
+  "seeds_budget_limited_with_cycles": 0,
+  "seeds_budget_limited_without_cycles": 0,
+  "seeds_compared": 7,
+  "seeds_where_repetition_helps": 0
+}

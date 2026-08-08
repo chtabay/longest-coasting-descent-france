@@ -1,0 +1,24 @@
+{
+  "paved_reference": {
+    "avoided": 55,
+    "cache_hits": 11,
+    "distinct_seeds": 4,
+    "projected_seconds_before": 33.5,
+    "routes": 10,
+    "searches_after": 40,
+    "searches_before": 95,
+    "seconds_after": 14.1,
+    "seconds_per_search": 0.35
+  },
+  "reference_vtc": {
+    "avoided": 102,
+    "cache_hits": 3,
+    "distinct_seeds": 1,
+    "projected_seconds_before": 8762.3,
+    "routes": 10,
+    "searches_after": 8,
+    "searches_before": 110,
+    "seconds_after": 637.3,
+    "seconds_per_search": 79.66
+  }
+}
