@@ -6,3 +6,6 @@ __pycache__/
 outputs/*.png
 .cache/
 data/raw/
+
+# Scratch files written by review or analysis agents; never study artifacts.
+scratch_*.json
