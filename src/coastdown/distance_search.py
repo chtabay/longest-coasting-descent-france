@@ -37,7 +37,7 @@ from __future__ import annotations
 import itertools
 import math
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from .coasting import (
     DEFAULT_BRAKE_DECELERATION_M_S2,
@@ -103,10 +103,16 @@ def trim_edge_profile(profile: EdgeProfile, from_travelled_m: float) -> EdgeProf
     """
     if from_travelled_m <= 0:
         return profile
+    # Remove every whole segment that fits inside the requested offset. The
+    # comparison must be inclusive: an offset produced by start_offsets is a
+    # cumulative segment sum, so `consumed + length` equals it to within
+    # rounding, and an exclusive test removed one segment too few — a requested
+    # 25 m offset moved the start by 0.00 m while the caller went on reporting a
+    # gain from it.
     kept = 0
     consumed = 0.0
     for length in profile.segment_travelled_m:
-        if consumed + length > from_travelled_m - 1e-9:
+        if consumed + length > from_travelled_m + 1e-6:
             break
         consumed += length
         kept += 1
@@ -118,7 +124,16 @@ def trim_edge_profile(profile: EdgeProfile, from_travelled_m: float) -> EdgeProf
             profile.segment_grade_ratio[kept:], profile.segment_horizontal_m[kept:]
         )
     ]
-    bends = tuple(bend for bend in profile.bends if bend.chainage_m >= consumed)
+    # Bends are keyed by PLAN chainage on the 5 m geometry, so they must be
+    # rebased by the plan length removed, not by the travelled length. Leaving
+    # them on the untrimmed frame displaced the whole speed envelope of every
+    # in-edge start by the size of the trim.
+    consumed_plan = math.fsum(profile.segment_horizontal_m[:kept])
+    bends = tuple(
+        replace(bend, chainage_m=bend.chainage_m - consumed_plan)
+        for bend in profile.bends
+        if bend.chainage_m >= consumed_plan
+    )
     return EdgeProfile(
         edge_id=profile.edge_id,
         segment_travelled_m=profile.segment_travelled_m[kept:],

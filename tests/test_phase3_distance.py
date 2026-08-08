@@ -465,6 +465,37 @@ def test_trimming_an_edge_moves_the_start_without_changing_what_follows() -> Non
         trim_edge_profile(whole, 10_000.0)
 
 
+def test_trimming_removes_what_was_asked_and_rebases_the_bends() -> None:
+    """An offset that moves the start by nothing is not an offset.
+
+    The loop used to break one segment late, so the smallest offset that
+    start_offsets can produce removed 0.00 m while the caller went on reporting
+    a distance gain from it. And the bends kept the untrimmed edge's chainage
+    frame, which displaced the whole speed envelope of every in-edge start by
+    the size of the trim.
+    """
+    graph = build_graph(osm(way(1, arc(0, 60, 60.0, 150.0, 40), ASPHALT)), "paved_reference")
+    profiles = profiles_for(graph, {1: -0.04})
+    whole = profiles[forward_edge(graph, 1)]
+    assert len(whole.segment_travelled_m) > 4
+    assert whole.bends
+
+    first = whole.segment_travelled_m[0]
+    trimmed = trim_edge_profile(whole, first)
+    removed = math.fsum(whole.segment_travelled_m) - math.fsum(trimmed.segment_travelled_m)
+    assert removed == pytest.approx(first, abs=1e-6), "the first segment must actually go"
+    assert len(trimmed.segment_travelled_m) == len(whole.segment_travelled_m) - 1
+
+    # Bends are rebased into the trimmed frame, never left on the old one.
+    assert trimmed.bends
+    assert min(bend.chainage_m for bend in trimmed.bends) >= -1e-9
+    assert max(bend.chainage_m for bend in trimmed.bends) <= trimmed.horizontal_length_m + 1e-6
+    shift = max(bend.chainage_m for bend in whole.bends) - max(
+        bend.chainage_m for bend in trimmed.bends
+    )
+    assert shift > 0, "the envelope must move with the start"
+
+
 def test_starting_inside_an_edge_cannot_beat_starting_at_its_head_on_one_edge() -> None:
     # On a single descending edge, moving the start forward only removes road.
     graph = build_graph(osm(way(1, straight(0, 1200), ASPHALT)), "paved_reference")
