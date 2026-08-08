@@ -224,13 +224,29 @@ ranked routes does.
   per seed, so a seed's third-best distinct route can outrank another seed's best and never be
   seen. An adversarial review puts the understatement of ranks 3-20 at 130 m to 566 m; that claim
   is not yet verified.
-- **The depth-first walk prunes on the per-edge envelope and the ranking publishes the route-level
-  one.** The two agree on outcome where tested, and per-seed the engine matched brute force on a
-  strided sample of the whole seed set (25 seeds, zero disagreements), but the pruning is done on
-  a quantity that is not the published one.
-- Further defects of the same family — units mixed between plan and travelled distance in
-  `route_bend_limits` and `edge_bend_limits`, and a direction asymmetry in `subsample_uniform` —
-  were raised by several independent reviewers and are awaiting verification.
+- **CONFIRMED: the search prunes on one speed envelope and reports on another.** The depth-first
+  walk uses the per-edge envelope, blind within one chord of every junction; the published
+  distance comes from the joined-geometry envelope. Because the two disagree, the top-k kept per
+  seed can exclude the longest route: on one seed the engine reports 159.3 m where brute force
+  finds 1020.9 m. With the envelope disabled the two agree exactly (6254.4 m), isolating the
+  cause. **The 40/40 brute-force validation cannot detect this**, because
+  `brute_force_distance_routes` walks with the same per-edge envelope and only reports with the
+  route-level one: the two implementations share the flawed pruning key, so their agreement says
+  nothing about it. That validation establishes the integrator and the traversal, not the ranking.
+- **CONFIRMED: `optimise_start` compared unlike quantities.** Its baseline was the
+  distinct-ranked route's distance while every candidate came from a fresh seed search returning
+  that seed's own best route, and offset zero was never evaluated. The published 315.9 m "gain" is
+  exactly the difference between those two numbers (4494.85 − 4178.98). On both published seeds
+  the distance decreases by the trimmed amount at every offset, so the correct answer is offset 0
+  with gain 0. Fixed by measuring the baseline with the same procedure at offset zero; the
+  measurement still has to be repeated.
+- Reviewed and **refuted on impact**, recorded so the same alarm is not raised twice: the
+  untoleranced chord comparison in `bend_radii` (0 of 48 643 bends change); the direction
+  asymmetry in `subsample_uniform` (a discretisation property — the 5 m sample set that drives
+  every geometric quantity is identical both ways); the plan/travelled frame mix in
+  `route_bend_limits` (dead for every published row, all of which carry `start_offset_m = 0`);
+  and the un-rebased bends in `trim_edge_profile` (latent, no published number moves — fixed
+  regardless).
 - Eight of the paved top 20 are network-limited; their corridors are unexplored beyond the extract.
 - 39 of 3 851 `reference_vtc` seeds hit the expansion budget.
 - The depth-first walk uses the per-edge envelope and the authoritative evaluation the route-level

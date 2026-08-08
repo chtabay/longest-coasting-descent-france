@@ -17,6 +17,7 @@ them.
 
 from __future__ import annotations
 
+import itertools
 import math
 
 import pytest
@@ -167,6 +168,59 @@ def test_the_result_does_not_depend_on_the_zero_detection_threshold(epsilon: flo
     assert run.travelled_distance_m == pytest.approx(reference.travelled_distance_m, rel=1e-6)
     assert run.stop_reason == reference.stop_reason
     assert run.restart_count == reference.restart_count
+
+
+def test_a_closed_cycle_always_returns_less_energy_than_it_received() -> None:
+    """The invariant that makes route reuse safe to allow.
+
+    On any closed cycle returning the bicycle to the same elevation, the
+    mechanical energy available after the lap must be strictly less than before
+    it: gravity nets to zero and both rolling resistance and drag are
+    unconditionally dissipative. A cycle that returned *more* would let a search
+    accumulate distance without bound, so this is what separates a physically
+    real loop from a data or modelling error.
+
+    Most loops are not lappable at all — a 300 m lap at 4 % stops the bicycle on
+    its own climb — so the test asserts the invariant in both forms: strict
+    energy loss when the lap completes, and a definitive stop when it does not.
+    """
+    for grade, length, speed in ((0.04, 300.0, 12.0), (0.02, 25.0, 14.0), (0.01, 100.0, 10.0)):
+        loop = RoadProfile([length, length], [-grade, grade], [CRR, CRR])
+        assert math.fsum(
+            g * segment for g, segment in zip(loop.grade_ratios, loop.segment_lengths_m)
+        ) == pytest.approx(0.0, abs=1e-9), "the lap must be closed"
+        run = simulate_coasting(loop, initial_speed_m_s=speed)
+        if run.stop_reason == "route_end":
+            after = 0.5 * EFFECTIVE_KG * run.speed_m_s[-1] ** 2
+            before = 0.5 * EFFECTIVE_KG * speed**2
+            assert after < before, f"a closed lap at {grade:.0%} returned energy"
+        else:
+            assert run.stop_reason == "definitive_stop"
+
+
+def test_repeated_laps_of_a_closed_cycle_decay_monotonically() -> None:
+    """Energy falls lap after lap until the loop is no longer passable.
+
+    This is the property a search may rely on once the once-per-piece rule is
+    lifted: repeating a loop is self-limiting, so it cannot manufacture
+    distance.
+    """
+    lap = ([25.0, 25.0], [-0.02, 0.02], [CRR, CRR])
+    speed = 14.0
+    energies = [0.5 * EFFECTIVE_KG * speed**2]
+    laps = 0
+    while laps < 20:
+        run = simulate_coasting(RoadProfile(*lap), initial_speed_m_s=speed)
+        if run.stop_reason != "route_end":
+            break
+        speed = run.speed_m_s[-1]
+        energies.append(0.5 * EFFECTIVE_KG * speed**2)
+        laps += 1
+    assert laps >= 2, f"the 50 m lap must be passable at least twice from 14 m/s, got {laps}"
+    assert all(later < earlier for earlier, later in itertools.pairwise(energies)), (
+        "energy must decay on every lap"
+    )
+    assert energies[-1] < energies[0]
 
 
 # --------------------------------------------------------------------------

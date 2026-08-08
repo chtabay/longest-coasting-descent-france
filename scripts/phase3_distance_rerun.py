@@ -302,10 +302,27 @@ def optimise_start(
     route: DistanceRoute,
     step_m: float,
 ) -> tuple[float, float]:
-    """Best in-edge start offset for one route, and the distance it gains."""
-    seed = profiles[route.edge_ids[0]]
+    """Best in-edge start offset for one route, and the distance it gains.
+
+    The baseline is measured with the SAME procedure as the candidates, at
+    offset zero. Comparing a candidate search against ``route.distance_m``
+    manufactured the whole reported gain: ``route`` is a *distinct-ranked*
+    route, while ``search_distance_from_edge(keep_best=1)`` returns the seed's
+    own best route, which is a different and usually longer one. On the two
+    published seeds the difference between those two numbers was exactly the
+    "gain" reported (4494.85 - 4178.98 = 315.87 m), and the true answer at every
+    offset was that starting later only removes road.
+    """
+    seed_id = route.edge_ids[0]
+    seed = profiles[seed_id]
+    baseline, baseline_budget = search_distance_from_edge(
+        graph, profiles, seed_id, budget=DistanceBudget(max_expansions=MAX_EXPANSIONS), keep_best=1
+    )
+    if baseline_budget.exhausted or not baseline:
+        return 0.0, 0.0
     best_offset = 0.0
-    best_distance = route.distance_m
+    best_distance = baseline[0].distance_m
+    reference = best_distance
     for offset in start_offsets(seed, step_m):
         if offset <= 0:
             continue
@@ -326,7 +343,7 @@ def optimise_start(
         if found[0].distance_m > best_distance:
             best_distance = found[0].distance_m
             best_offset = offset
-    return best_offset, best_distance - route.distance_m
+    return best_offset, best_distance - reference
 
 
 def main() -> None:
