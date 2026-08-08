@@ -1,0 +1,139 @@
+{
+  "paved_reference": {
+    "components_containing_a_cycle": 21,
+    "directed_edges": 2429,
+    "edges_inside_such_a_component": 880,
+    "largest_components": [
+      {
+        "distinct_ways": 87,
+        "edges": 235,
+        "sample_names": [
+          "Avenue de Brandes",
+          "Avenue de l'\u00c9tendard",
+          "Avenue des Jeux",
+          "Avenue des Marmottes",
+          "Chemin de la Chapelle",
+          "Chemin des Bergers"
+        ]
+      },
+      {
+        "distinct_ways": 62,
+        "edges": 185,
+        "sample_names": [
+          "Avenue Jean-Baptiste Gauthier",
+          "D 1091",
+          "D 1091B",
+          "Impasse du Racle",
+          "Quai Docteur Girard",
+          "Route du Puits"
+        ]
+      },
+      {
+        "distinct_ways": 27,
+        "edges": 135,
+        "sample_names": [
+          "D 43",
+          "D 43b",
+          "D 526",
+          "Route de la Mairie",
+          "Route de la Ville",
+          "secondary"
+        ]
+      },
+      {
+        "distinct_ways": 27,
+        "edges": 81,
+        "sample_names": [
+          "D 1091",
+          "D 1091B",
+          "D 211",
+          "path",
+          "primary",
+          "service"
+        ]
+      },
+      {
+        "distinct_ways": 15,
+        "edges": 48,
+        "sample_names": [
+          "Chemin des Freydi\u00e8res",
+          "D 43a",
+          "Route de la Cour Basse",
+          "Route de la Drayre",
+          "Route des Combes",
+          "tertiary"
+        ]
+      }
+    ],
+    "share_of_edges_inside_a_cycle": 0.3623
+  },
+  "reading": "cycles are abundant in this network, so a null result from the physical comparison is a statement about coasting, not about the extract",
+  "reference_vtc": {
+    "components_containing_a_cycle": 26,
+    "directed_edges": 3919,
+    "edges_inside_such_a_component": 1949,
+    "largest_components": [
+      {
+        "distinct_ways": 126,
+        "edges": 376,
+        "sample_names": [
+          "Avenue de Brandes",
+          "Avenue de l'\u00c9tendard",
+          "Avenue des Jeux",
+          "Avenue des Marmottes",
+          "Chemin de la Chapelle",
+          "Chemin des Bergers"
+        ]
+      },
+      {
+        "distinct_ways": 114,
+        "edges": 355,
+        "sample_names": [
+          "Avenue Jean-Baptiste Gauthier",
+          "Avenue de la R\u00e9publique",
+          "B\u00e9al de la Mairie",
+          "Chemin du Facteur",
+          "D 1091",
+          "D 1091B"
+        ]
+      },
+      {
+        "distinct_ways": 40,
+        "edges": 169,
+        "sample_names": [
+          "Chemin de l'Eau d'Olle",
+          "Chemin de la Passerelle",
+          "Chemin de la Tour",
+          "Chemin des \u00c9coliers",
+          "D 43",
+          "D 43b"
+        ]
+      },
+      {
+        "distinct_ways": 49,
+        "edges": 168,
+        "sample_names": [
+          "Avenue de la Muzelle",
+          "D 1091",
+          "D 213",
+          "D 220",
+          "D 220a",
+          "Route des Travers"
+        ]
+      },
+      {
+        "distinct_ways": 44,
+        "edges": 154,
+        "sample_names": [
+          "Chemin des Freydi\u00e8res",
+          "D 43a",
+          "D 526",
+          "Le Verney",
+          "Place du Rissiou",
+          "Route de la Cour Basse"
+        ]
+      }
+    ],
+    "share_of_edges_inside_a_cycle": 0.4973
+  }
+}

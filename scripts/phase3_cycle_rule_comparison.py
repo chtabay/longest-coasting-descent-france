@@ -40,7 +40,6 @@ from coastdown.search import EdgeProfile, build_edge_profile
 from coastdown.textio import write_text_lf
 
 PRODUCTION_METHOD = "raw_25m"
-SCENARIO = "paved_reference"
 TOP_N = 10
 # Deliberately generous. The point of the run is to find out where the lapping
 # search stops being answerable, so the cap must be high enough that hitting it
@@ -106,6 +105,7 @@ def repetition(route: DistanceRoute) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--scenario", default="paved_reference")
     parser.add_argument("--overpass-cache", default=".cache/phase1b-live/oisans-overpass.json")
     parser.add_argument("--elevations", default=".cache/phase2/elevations.json")
     parser.add_argument("--output", default="outputs/phase3")
@@ -116,7 +116,7 @@ def main() -> None:
     osm = json.loads(Path(arguments.overpass_cache).read_bytes())
     store = load_store(arguments.elevations)
 
-    graph = build_graph(osm, SCENARIO)
+    graph = build_graph(osm, arguments.scenario)
     profiles = build_profiles(graph, store)
 
     rows: list[dict[str, object]] = []
@@ -151,14 +151,15 @@ def main() -> None:
                 }
             )
 
-    with (output / "cycle_rule_comparison.csv").open("w", encoding="utf-8", newline="\n") as handle:
+    name = f"cycle_rule_comparison_{arguments.scenario}"
+    with (output / f"{name}.csv").open("w", encoding="utf-8", newline="\n") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
     strict, free = tops[False][0], tops[True][0]
     verdict = {
-        "scenario": SCENARIO,
+        "scenario": arguments.scenario,
         "elevation_method": PRODUCTION_METHOD,
         "wind": "none (reference environment)",
         "max_expansions_per_seed": MAX_EXPANSIONS,
@@ -174,9 +175,7 @@ def main() -> None:
             "seeds_with_exhausted_budget is non-zero"
         ),
     }
-    write_text_lf(
-        output / "cycle_rule_comparison.json", json.dumps(verdict, indent=2, sort_keys=True) + "\n"
-    )
+    write_text_lf(output / f"{name}.json", json.dumps(verdict, indent=2, sort_keys=True) + "\n")
     print(
         f"\nonce per way piece: {strict.distance_m:.0f} m | "
         f"cycles allowed: {free.distance_m:.0f} m "

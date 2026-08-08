@@ -1,0 +1,35 @@
+seed_edge_id,osm_way_id,name,strict_distance_m,strict_expansions,strict_exhausted,cycles_distance_m,cycles_expansions,cycles_exhausted,cycles_runtime_s,gain_m,relative_gain,repeated_traversals,max_traversals_of_one_edge,identical_path,expansion_blowup,oracle_checked,oracle_agrees,oracle_routes,group
+osm-905950459-0-forward,905950459,Route des Lacs,6291.22,1158,False,6453.26,5991,False,819.84,162.04,0.0258,3,2,False,5.17,False,,,corridor
+osm-1007287274-0-forward,1007287274,Route des Lacs,975.25,3,False,975.25,3,False,0.06,0.0,0.0,0,1,True,1.0,True,True,3,sample
+osm-1054770671-0-reverse,1054770671,Rue de la Grenouillère,2739.24,432,False,2791.58,613,False,17.73,52.34,0.0191,1,2,False,1.42,True,True,613,sample
+osm-1082749713-3-forward,1082749713,D 43a,1538.08,25,False,1538.08,25,False,0.41,0.0,0.0,0,1,True,1.0,True,True,25,sample
+osm-1093023462-0-forward,1093023462,Chemin de Giraudière,177.74,3,False,177.74,3,False,0.02,0.0,0.0,0,1,True,1.0,True,True,3,sample
+osm-1175164195-1-forward,1175164195,Lotissement les Bords de Rive,16.02,1,False,16.02,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-119440075-0-reverse,119440075,Promenade Clotaire Collomb,12.36,1,False,12.36,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-1246895764-0-forward,1246895764,D 220,14.78,1,False,14.78,1,False,0.01,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-132663427-0-forward,132663427,service,51.19,1,False,51.19,1,False,0.01,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-132675316-0-forward,132675316,Rue Gambetta,544.83,25,False,544.83,25,False,0.39,0.0,0.0,0,1,True,1.0,True,True,25,sample
+osm-1354478668-3-reverse,1354478668,D 44B,69.65,1,False,69.65,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-1453680633-1-forward,1453680633,service,11.15,1,False,11.15,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-159094389-0-forward,159094389,Le Verney,95.06,5,False,95.06,5,False,0.02,0.0,0.0,0,1,True,1.0,True,True,5,sample
+osm-179330218-2-forward,179330218,Route du Mas des Crozes,14.7,1,False,14.7,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-181714595-1-forward,181714595,Route de Sardonne,8.95,1,False,8.95,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-187055295-0-forward,187055295,Route de Champ Rond,4.2,1,False,4.2,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-220002816-0-reverse,220002816,D 25,27.01,1,False,27.01,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-232351560-0-reverse,232351560,Rue du Jardin Alpin,5.16,1,False,5.16,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-235607579-0-forward,235607579,residential,75.89,3,False,75.89,3,False,0.01,0.0,0.0,0,1,True,1.0,True,True,3,sample
+osm-252082779-0-reverse,252082779,D 43,18.91,1,False,18.91,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-264100599-0-forward,264100599,Place Jean Moulin,3074.41,1244,False,3126.75,1962,False,96.44,52.34,0.017,1,2,False,1.58,True,True,1962,sample
+osm-281007422-0-reverse,281007422,Chemin de Chambuisson,24.81,1,False,24.81,1,False,0.01,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-28477411-1-forward,28477411,D 1091,67.81,1,False,67.81,1,False,0.01,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-333253139-1-forward,333253139,Route des Combes,218.42,1,False,218.42,1,False,0.02,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-386931717-2-forward,386931717,unclassified,25.07,1,False,25.07,1,False,0.01,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-457903734-1-reverse,457903734,D 211,5.23,1,False,5.23,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-532727920-1-forward,532727920,D 1091B,42.39,2,False,42.39,2,False,0.01,0.0,0.0,0,1,True,1.0,True,True,2,sample
+osm-560139076-0-reverse,560139076,residential,822.74,128,False,822.74,133,False,2.29,0.0,0.0,0,1,True,1.04,True,True,133,sample
+osm-609323685-7-reverse,609323685,D 25,777.28,32,False,777.28,32,False,0.29,0.0,0.0,0,1,True,1.0,True,True,32,sample
+osm-72576394-0-reverse,72576394,Route des Blaches,3301.3,17,False,3301.3,17,False,0.31,0.0,0.0,0,1,True,1.0,True,True,17,sample
+osm-773774359-0-reverse,773774359,service,895.33,26,False,895.33,26,False,0.39,0.0,0.0,0,1,True,1.0,True,True,26,sample
+osm-843544218-0-forward,843544218,unclassified,4.06,1,False,4.06,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-892421804-0-reverse,892421804,Rue de la Giette,27.64,1,False,27.64,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-993968494-0-reverse,993968494,service,134.74,5,False,134.74,5,False,0.02,0.0,0.0,0,1,True,1.0,True,True,5,sample

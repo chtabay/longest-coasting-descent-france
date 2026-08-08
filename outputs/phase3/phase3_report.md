@@ -289,9 +289,37 @@ seeds then have their optimum at **offset 0 with gain 0** — starting later onl
 
 Zero gain here does not generalise. Starting later means restarting at 15 km/h from the new point,
 so on a different profile — a rise before a descent, a bend that costs speed early — dropping an
-unfavourable prefix genuinely can extend the total. A synthetic case where `offset > 0` is strictly
-optimal is pinned in `tests/test_phase3_distance.py` precisely so the optimiser cannot quietly
-specialise on the answer the Oisans happens to give.
+unfavourable prefix genuinely can extend the total.
+
+A synthetic case where `offset > 0` is strictly optimal is pinned in
+`tests/test_phase3_distance.py` precisely so the optimiser cannot quietly specialise on the answer
+the Oisans happens to give. The seed rises 4 % for 150 m before descending 6 %: from the node the
+bicycle stops after **18.3 m**, started past the crest it runs **857.6 m**. The coarse pass finds
+784.2 m of gain there and the fine pass 834.3 m, so the two-step screening strategy earns its
+second pass as well.
+
+### Cost: the same answer for a fifteenth of the work
+
+The study answers a question about a **seed**, not about a route, and ranked routes share seeds
+heavily — the whole `reference_vtc` top ten begins on one edge. The previous code ran the identical
+study ten times, re-measured offset zero on every pass, and re-evaluated at 25 m every offset it had
+already evaluated at 100 m. Memoising on `(seed, offset)` removes all three. Both passes still scan
+their own full offset set, so the numbers are identical by construction rather than by hope.
+
+| | `paved_reference` | `reference_vtc` |
+|---|---:|---:|
+| Routes studied / distinct seeds | 10 / 4 | 10 / **1** |
+| Searches without caching | 95 | 110 |
+| Searches performed | **40** | **8** |
+| Searches avoided | 55 | 102 |
+| Measured runtime | 21.7 s | 980.5 s |
+| Projected runtime without caching | 51.5 s | **13 482 s** |
+| **Rows differing from the uncached study** | **0 of 10** | **0 of 10** |
+
+The two together fall from a projected 3 h 45 to 17 minutes — which is essentially the whole of the
+4 h 46 the corrected rerun took, since the two regional rankings and the validation account for
+about twenty minutes between them. The cost came from re-running an identical search, not from the
+correctness fix.
 
 ## 6. Sensitivity: is distance more robust than time?
 

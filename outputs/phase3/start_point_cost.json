@@ -1,24 +1,28 @@
 {
   "paved_reference": {
-    "avoided": 55,
     "cache_hits": 11,
     "distinct_seeds": 4,
-    "projected_seconds_before": 33.5,
-    "routes": 10,
-    "searches_after": 40,
-    "searches_before": 95,
-    "seconds_after": 14.1,
-    "seconds_per_search": 0.35
+    "max_relative_gain": 0.0,
+    "routes_studied": 10,
+    "rows_differing_from_the_uncached_study": 0,
+    "searches_avoided": 55,
+    "searches_performed": 40,
+    "searches_without_caching": 95,
+    "seconds_measured": 21.7,
+    "seconds_per_search": 0.54,
+    "seconds_projected_without_caching": 51.5
   },
   "reference_vtc": {
-    "avoided": 102,
     "cache_hits": 3,
     "distinct_seeds": 1,
-    "projected_seconds_before": 8762.3,
-    "routes": 10,
-    "searches_after": 8,
-    "searches_before": 110,
-    "seconds_after": 637.3,
-    "seconds_per_search": 79.66
+    "max_relative_gain": 0.0,
+    "routes_studied": 10,
+    "rows_differing_from_the_uncached_study": 0,
+    "searches_avoided": 102,
+    "searches_performed": 8,
+    "searches_without_caching": 110,
+    "seconds_measured": 980.5,
+    "seconds_per_search": 122.57,
+    "seconds_projected_without_caching": 13482.3
   }
 }
