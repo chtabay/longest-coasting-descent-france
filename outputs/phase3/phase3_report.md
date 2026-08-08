@@ -144,16 +144,24 @@ claim rests on.
 7 at the end of the network and 1 with no admissible continuation**. The eight network-limited
 routes are lower bounds on what their corridor could deliver, not measurements of it.
 
-## 5. Start point
+## 5. Start point — WITHDRAWN, the published figures are wrong
 
-Seeds sit at graph nodes; the event allows a start anywhere along an edge. Screening at 100 m then
-refining at 25 m over the top 10 of each scenario:
+> An adversarial review found, and a direct test confirmed, that
+> `trim_edge_profile` cuts one segment fewer than asked: a requested 25 m offset
+> removes **0.00 m**, and a requested 100 m removes 75.2 m. The smallest offset is
+> therefore a no-op, yet `start_point_strategy.csv` reports a 315.9 m "gain" from
+> it. A start that never moved cannot produce a gain, so the gain is an artefact —
+> most likely of a second confirmed-by-convergence defect in the same function,
+> which keeps a trimmed edge's bend chainage in the untrimmed frame and so
+> displaces the whole speed envelope.
+>
+> **`start_point_strategy.csv` and the 8.5 % figure are withdrawn.** The in-edge
+> start question is unanswered, and the two-pass national strategy proposed from
+> it is unsupported until the function is fixed and the measurement repeated.
 
-- median gain **0.0 %**, maximum **8.5 %**;
-- the 100 m screening pass captured **75 %** of the refined gain where a gain existed.
-
-**National strategy:** screen at 100 m, refine at 25 m on the shortlist only. Node seeding alone
-is not sufficient — an 8.5 % gain reorders a ranking.
+Seeds sit at graph nodes; the event allows a start anywhere along an edge. That approximation is
+real — the adversarial test in `tests/test_phase3_distance.py` shows a start past a rise reaching
+a descent the node-seeded run never reaches — but its size on the Oisans is not yet measured.
 
 ## 6. Sensitivity: is distance more robust than time?
 
@@ -212,6 +220,17 @@ ranked routes does.
 
 ## 9. Open limitations
 
+- **The ranking below rank 2 is not established.** The search keeps only the two longest routes
+  per seed, so a seed's third-best distinct route can outrank another seed's best and never be
+  seen. An adversarial review puts the understatement of ranks 3-20 at 130 m to 566 m; that claim
+  is not yet verified.
+- **The depth-first walk prunes on the per-edge envelope and the ranking publishes the route-level
+  one.** The two agree on outcome where tested, and per-seed the engine matched brute force on a
+  strided sample of the whole seed set (25 seeds, zero disagreements), but the pruning is done on
+  a quantity that is not the published one.
+- Further defects of the same family — units mixed between plan and travelled distance in
+  `route_bend_limits` and `edge_bend_limits`, and a direction asymmetry in `subsample_uniform` —
+  were raised by several independent reviewers and are awaiting verification.
 - Eight of the paved top 20 are network-limited; their corridors are unexplored beyond the extract.
 - 39 of 3 851 `reference_vtc` seeds hit the expansion budget.
 - The depth-first walk uses the per-edge envelope and the authoritative evaluation the route-level
