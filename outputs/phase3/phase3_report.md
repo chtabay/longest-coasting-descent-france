@@ -379,9 +379,24 @@ A median blow-up of ×1.0 means that on most seeds the lapping walk explores *pr
 tree*: no admissible continuation was ever one the rule had blocked.
 
 **But the exceptions land where it hurts.** The largest is the VTC leader's own seed:
-6 291.2 m → **6 453.3 m**, +162.0 m, repeating three traversals, for ×5.17 the expansions. The VTC
-record is therefore **not stable under the change of definition**, and the rule cannot be called
-free.
+6 291.2 m → **6 453.3 m**, +162.0 m, 75 traversals of 72 distinct edges, for ×5.17 the expansions.
+The VTC record is therefore **not stable under the change of definition**, and the rule cannot be
+called free.
+
+What it repeats is worth naming, because it decides whether the extra 162 m is a discovery or an
+artefact of the definition. Exactly three edges are used twice, and **all three are roundabouts**:
+
+| repeated edge | OSM way | positions in the route |
+|---|---:|---|
+| Rond-Point des Pistes | 234171512 | 6 and 10 |
+| Rond-Point du Tour de France | 1040486385 | 23 and 30 |
+| unnamed tertiary roundabout arc | 28429105 | 41 and 44 |
+
+The bicycle goes round three roundabouts twice each. That is physically available to a rider and
+the simulation of it is sound — the lateral envelope applies to the second lap exactly as to the
+first — but whether it counts as *one trip* is a matter of definition, not of physics. It is
+precisely the behaviour the trip rule exists to exclude. The route still ends at the same D 211
+underpass, so the 8.3 m structure of §4.1 bounds both versions alike.
 
 ### Is a regional run with repetition affordable?
 
@@ -494,18 +509,18 @@ ranked routes does.
 
 ### 9.1 Still open
 
-- **Five `reference_vtc` seeds are unfinished.** They exhaust the production budget, so their
-  distances are lower bounds on their own optima and the VTC baseline is exhaustive for 3 846 of
-  3 851 seeds. Until they close, 6 291.2 m is not a regional maximum even within the extract.
 - **The VTC record is network-limited, not energy-limited.** The whole VTC top 10 ends at
   `network_end`; the leader reaches the end of the admitted graph still travelling at 56.8 km/h,
   severed by an 8.3 m `layer=-1` underpass the structure rule correctly excludes. It bounds its
-  corridor from below and nothing more.
+  corridor from below and nothing more. **This is the largest single reservation on the figure**,
+  and closing it needs a source of roadway elevation for structures, not a modelling change.
 - **A third of the VTC leader's surface is inferred** (34.3 %), against 0 % for the paved leader.
   The two records are not equally well evidenced.
-- **The trip rule is a definition, and it is unmeasured on real data.** `allow_cycles` shows on a
-  synthetic lappable loop that lifting it takes 250.5 m to 601.2 m — same data, same physics,
-  4 laps. Its effect on the Oisans is not yet known.
+- **The VTC record is not stable under the trip rule.** Allowing repetition takes its seed to
+  6 453.3 m by lapping three roundabouts twice each (§5bis). Which figure is "the" record is a
+  question about the definition of a trip, and the study has not settled it.
+- 557.6 km of the network stays in `review` for want of an explicit bicycle tag, and structures
+  still carry no roadway elevation.
 
 ### 9.2 Fixed since the last report, recorded so the history stays legible
 
@@ -526,6 +541,10 @@ ranked routes does.
   distinct-ranked route) against candidates from a fresh seed search (that seed's own best), with
   offset zero never evaluated. The 315.9 m "gain" is exactly 4 494.85 − 4 178.98. Remeasured: both
   seeds have their optimum at offset 0, gain 0. See §5.
+- **CLOSED — the five unfinished `reference_vtc` seeds.** All resolved at 6 050 to 10 100
+  expansions, reaching 3 602.9 to 3 961.7 m; none enters the Top 20 and none approaches 6 291.2 m.
+  The production cap is now 20 000, above what any seed of either scenario needs, so the baseline
+  is exhaustive in a single pass. See §4.2.
 - Reviewed and **refuted on impact**, recorded so the same alarm is not raised twice: the
   untoleranced chord comparison in `bend_radii` (0 of 48 643 bends change); the direction
   asymmetry in `subsample_uniform` (a discretisation property — the 5 m sample set that drives
