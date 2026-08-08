@@ -185,25 +185,29 @@ def reverse_samples(samples: Sequence[SamplePoint]) -> tuple[SamplePoint, ...]:
 def subsample_uniform(
     samples: Sequence[SamplePoint], base_spacing_m: float, target_spacing_m: float
 ) -> tuple[SamplePoint, ...]:
-    """Take every n-th uniform-grid point, exactly reproducing a coarser grid.
+    """Take every n-th uniform-grid point, reproducing a coarser grid.
 
-    Because the base grid sits at exact multiples of ``base_spacing_m`` and the
-    elevation service is queried pointwise, this is identical to having sampled
-    at ``target_spacing_m`` directly — not an approximation of it.
+    Selection is by **position in the grid sequence**, never by testing whether a
+    chainage is a multiple of the target.  Reversing an edge renumbers chainage
+    as ``total - chainage``, and a total that is not itself a multiple of the
+    target leaves no sample satisfying such a test: the profile then collapses to
+    its two endpoints, a single averaged grade with no terrain in between.  That
+    is exactly what happened to every reverse edge — 1450 of 2400 — before this
+    was fixed, and those edges dominated the ranking precisely because a
+    featureless profile never stops a bicycle.
     """
     ratio = target_spacing_m / base_spacing_m
     factor = round(ratio)
     if factor < 1 or abs(ratio - factor) > 1e-9:
         raise ValueError("target_spacing_m must be an integer multiple of base_spacing_m.")
-    chosen = [
-        sample
-        for sample in samples
-        if sample.on_uniform_grid
-        and abs(sample.chainage_m / target_spacing_m - round(sample.chainage_m / target_spacing_m))
-        < 1e-6
-    ]
+    grid = [sample for sample in samples if sample.on_uniform_grid]
+    if len(grid) < 2:
+        raise ValueError("The base sampling carries no uniform grid to subsample.")
+    chosen = list(grid[::factor])
+    if chosen[-1].chainage_m < grid[-1].chainage_m - 1e-6:
+        chosen.append(grid[-1])
     tail = samples[-1]
-    if chosen and chosen[-1].chainage_m < tail.chainage_m - 1e-6:
+    if chosen[-1].chainage_m < tail.chainage_m - 1e-6:
         chosen.append(tail)
     if len(chosen) < 2:
         raise ValueError("Subsampling produced fewer than two points.")

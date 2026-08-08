@@ -1,5 +1,26 @@
 # Phase 2 — Regional Oisans coasting prototype
 
+> **SUPERSEDED, AND ITS RANKING IS KNOWN TO BE DEFECTIVE.**
+>
+> Phase 3 replaced the objective (elapsed time → distance) and, while doing so, found three
+> defects that predate this report and affected the ranking below:
+> bends were measured on the 25 m production profile, which drops the sharp-bend vertices and
+> detected 3 916 bends instead of 44 994; reverse-direction profiles collapsed to a single
+> averaged grade on 1450 of 2400 edges; and bend positions were mapped between two different
+> plan-length scales, shifting the speed envelope by a whole segment after the first junction.
+>
+> The **Top 20 tables, the turn-constraint audit and the manual audit in this report are not
+> reliable** and have deliberately not been regenerated: they answer a question the study no
+> longer asks. See `outputs/phase3/phase3_report.md` §3 for the defects and §4 for the current
+> regional result.
+>
+> What does survive: the conclusion that the elapsed-time objective is degenerate. That rests on
+> the sensitivity signature — both the low and the high rolling-resistance bounds *reduce* the
+> leader's time, which is the signature of a near-equilibrium optimum — and not on the ranking.
+> The usability classes, the surface scenarios, the elevation-method study and the graph
+> construction described here are all still in use.
+
+
 Experimental regional prototype. **No national claim is made, and the regional
 ranking below should not be read as a list of the best descents in the Oisans.**
 Its main result is negative and is stated first, because it changes what Phase 3

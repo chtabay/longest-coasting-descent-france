@@ -1,0 +1,11 @@
+rank,objective,distance_m,elapsed_time_s,mean_speed_km_h,net_dz_m,edges_used,roads
+1,max_distance,4494.8,490.5,32.99,-280.3,18,Rue de Piégut > Rue de la Piscine > D 211e > Rue Sainte Marie > Rue du Pissaille > D 211G
+2,max_distance,4179.0,450.5,33.39,-257.6,17,Rue de Piégut > Rue de la Piscine > D 211e > Rue Sainte Marie > Rue du Pissaille > D 211G > Rue de la Grande Fontaine
+3,max_distance,3809.8,387.6,35.39,-252.6,13,Rue du Col > D 211e > Rue Sainte Marie > Rue du Pissaille > D 211G
+4,max_distance,3679.7,397.9,33.29,-233.4,17,service > D 211e > Rue Sainte Marie > Rue du Pissaille > D 211G
+5,max_distance,3493.9,347.7,36.18,-230.0,12,Rue du Col > D 211e > Rue Sainte Marie > Rue du Pissaille > D 211G > Rue de la Grande Fontaine
+6,max_distance,3363.8,358.0,33.83,-210.8,16,service > D 211e > Rue Sainte Marie > Rue du Pissaille > D 211G > Rue de la Grande Fontaine
+7,max_distance,2798.0,284.3,35.43,-216.3,4,Route de Sardonne > D 44B > D 44 > Route du Boulangeard
+8,max_distance,2798.0,284.3,35.43,-238.1,4,Route de Sardonne > D 44B > D 44
+9,max_distance,2700.8,272.5,35.69,-248.2,19,D 43a
+10,max_distance,2642.0,271.1,35.08,-215.2,13,Chemin Louis Frederic Vieux > Route de Maronne > Place de la Fontaine > Route de Maronne > D 211a

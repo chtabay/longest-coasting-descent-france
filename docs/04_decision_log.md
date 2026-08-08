@@ -184,3 +184,77 @@ drops 1.8 m at a mean of 6.3 km/h. Both the low and the high rolling-resistance 
 its time, by 18 % and 51 %: it is optimal only at the central coefficient, and only because it is
 near equilibrium there. Maximising elapsed time rewards creeping, not descending. Phase 3 needs a
 discriminating objective chosen deliberately.
+
+## D-022 — The objective is distance, and it carries no side conditions
+
+**Decision:** the primary objective is `max distance_travelled_m` until the definitive physical
+stop. Elapsed time, moving time, mean speed and elevation become secondary metrics. No minimum
+grade, minimum descent, minimum mean speed, descent share or duration is imposed.
+
+**Reason:** Phase 2 maximised elapsed time and produced a degenerate optimum — 734 m in 420 s at
+6.3 km/h — because a nearly balanced bicycle creeps for a long while. Distance does not reward
+creeping: crawling adds seconds, not metres. Adding side conditions to repair a badly chosen
+objective would hide the problem rather than fix it, so the objective is changed instead and left
+unconditioned. A nearly level road may still win, and if it does it will be because it genuinely
+rolls further.
+
+## D-023 — The run ends at the definitive physical stop, not at a threshold
+
+**Decision:** the run ends when speed reaches zero and no spontaneous forward acceleration can
+restart the bicycle. The bicycle never rolls backwards.
+
+**Reason:** the 0.30 m/s / 2 s dwell rule was a numerical convenience, and under a time objective
+it set the answer: a route hovering just above the threshold accumulated time indefinitely. At
+rest the aerodynamic term vanishes, so the restart criterion is exactly `a(0) > 0`, which for zero
+wind reduces to `grade < -Crr`. The test is evaluated through the acceleration function rather
+than the algebraic form so that a non-zero along-route wind, which does exert force at rest, is
+handled by the same rule.
+
+## D-024 — Only a zero on a segment boundary can be followed by a restart
+
+**Decision:** a zero reached inside a segment terminates the run; a zero reached exactly on a
+boundary is decided by the segment about to be entered.
+
+**Reason:** `a(v)` is non-increasing in speed, because drag only ever opposes motion, so `a(0)` is
+the largest acceleration available on a segment. A segment that could restart the bicycle could
+never have stopped it: the speed would have decayed towards a positive equilibrium instead of
+reaching zero. The boundary case is therefore the only one that needs deciding, and it is decided
+by the following segment, which is what `segment_index_at_distance` already returns for a distance
+sitting exactly on a boundary.
+
+## D-025 — Braking is a constraint, never a choice
+
+**Decision:** the optimiser never selects a braking amount. A maximum-speed envelope is built from
+the bend radii of the 5 m geometry, the bicycle follows its natural dynamics wherever they respect
+it, and exactly enough energy is removed where they would not. Phase 2's rule — end the route at
+the first bend requiring braking — is abandoned.
+
+**Reason:** ending a route at the first bend measured the geometry's worst point rather than the
+road's length, and it discarded descents a rider would simply have braked through. Two
+representations are computed: energy removed at the constraint, and anticipated braking at a
+declared 1.5 m/s². They are equivalent for distance and the equivalence is structural, not
+numerical: both leave the constraint at the same place and the same speed, so the state governing
+everything downstream is identical. Braking *energy* differs between them, but that figure only
+records how much speed had to be removed and is not a discriminator.
+
+## D-026 — Bends are measured across the joined route, not edge by edge
+
+**Decision:** the authoritative evaluation of a finished route computes bend radii over the
+concatenated 5 m geometry of all its edges.
+
+**Reason:** the radius estimator needs a chord of geometry either side of a point, so per-edge
+evaluation is blind within 15 m of every edge end. Ways are cut at 974 shared interior nodes, so
+that blind band sits on almost every junction — exactly where a bicycle turns. The depth-first
+walk still uses the cheaper per-edge envelope and is therefore mildly optimistic near junctions;
+that is acceptable and declared, because the envelope moves distance by well under a percent.
+
+## D-027 — The maximum-distance objective has its own degeneracy, and it is disclosed
+
+**Decision:** publish the fact that a grade sitting just beyond `-Crr` gives a positive equilibrium
+speed, so the bicycle never stops and the distance is bounded by the extent of the network rather
+than by energy. Runs that hit the integrator's time cap are reported as lower bounds, not as
+stops.
+
+**Reason:** the answer is physically correct — on such a road the bicycle really does roll on —
+but it is a different kind of answer from "this descent is long", and a reader must be able to
+tell which one the ranking is reporting.

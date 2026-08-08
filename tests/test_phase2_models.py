@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import itertools
 import math
+import statistics
 
 import pytest
 
@@ -217,6 +218,29 @@ def test_subsampling_reproduces_a_coarser_grid_exactly() -> None:
     assert all(abs(value % 25.0) < 1e-6 for value in positions)
     with pytest.raises(ValueError, match="integer multiple"):
         subsample_uniform(samples, 5.0, 7.0)
+
+
+def test_subsampling_survives_reversal_when_the_length_is_not_a_round_multiple() -> None:
+    """A reversed edge must keep its terrain, not collapse to one averaged grade.
+
+    Reversal renumbers chainage as ``total - chainage``. When selection tested
+    whether a chainage was a multiple of the target spacing, a total that was not
+    itself such a multiple left no sample matching, and the profile fell back to
+    its two endpoints: a single straight grade with no relief in between. On the
+    Oisans graph that silently hit 1450 of 2400 simulable edges — every reverse
+    one — and those featureless edges then dominated a maximum-distance ranking,
+    because a profile with no terrain never stops a bicycle.
+    """
+    # 617.3 m is deliberately not a multiple of 25.
+    samples = sample_polyline(line(617.3, points=63), 5.0)
+    forward = subsample_uniform(samples, 5.0, 25.0)
+    backward = subsample_uniform(reverse_samples(samples), 5.0, 25.0)
+    assert len(forward) > 20
+    assert abs(len(backward) - len(forward)) <= 1
+    for chosen in (forward, backward):
+        gaps = [b.chainage_m - a.chainage_m for a, b in itertools.pairwise(chosen)]
+        assert max(gaps) <= 25.0 + 1e-6
+        assert statistics.median(gaps) == pytest.approx(25.0, abs=1.0)
 
 
 def test_turn_angles_are_zero_on_a_straight_line() -> None:

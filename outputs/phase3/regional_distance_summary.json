@@ -1,0 +1,103 @@
+{
+  "brake_deceleration_m_s2": 1.5,
+  "braking": "no discretionary braking; only the minimum needed to respect a bend speed envelope, compared under an ideal and an anticipated representation",
+  "claim": "experimental regional prototype; no national claim",
+  "cycle_rule": "each physical way piece at most once per trip, whichever direction",
+  "definitive_stop": "speed reaches zero and no spontaneous forward acceleration restarts the bicycle; a zero on a segment boundary is decided by the segment entered",
+  "initial_speed_km_h": 15.0,
+  "lateral_limits_m_s2": {
+    "committed": 4.903,
+    "conservative": 1.961,
+    "nominal": 3.432
+  },
+  "objective": "max distance travelled until the definitive physical stop",
+  "production_elevation_method": "raw_25m",
+  "replaces": "max elapsed_time (Phase 2)",
+  "runtime_s": 466.7,
+  "scenarios": {
+    "paved_reference": {
+      "banned_turns": 3,
+      "directed_edges": 2429,
+      "distinct_ranked": 20,
+      "forced_turn_edges": 0,
+      "median_edge_length_m": 65.88,
+      "nodes_with_outgoing_edges": 1325,
+      "out_degree_histogram": {
+        "1": 478,
+        "2": 606,
+        "3": 226,
+        "4": 14,
+        "5": 1
+      },
+      "profiled_edges": 2429,
+      "restriction_notes": [
+        "relation 1781195 (no_left_turn) touches no admitted edge",
+        "relation 1781196 no_left_turn: 1x1 turn(s) banned",
+        "relation 1781911 no_left_turn: 1x1 turn(s) banned",
+        "relation 1781912 no_left_turn: 1x1 turn(s) banned"
+      ],
+      "routes_found": 3158,
+      "routes_with_a_restart": 0,
+      "search": {
+        "expansions": 29327,
+        "seeds": 2383,
+        "seeds_with_exhausted_budget": 0
+      },
+      "simulable_edges": 2383,
+      "stop_reasons": {
+        "definitive_stop": 2607,
+        "route_end": 551
+      },
+      "surface_counts": {
+        "asphalt_good": 2429
+      },
+      "total_directed_length_km": 426.354,
+      "usability_counts": {
+        "paved_reference": 2429
+      }
+    },
+    "reference_vtc": {
+      "banned_turns": 3,
+      "directed_edges": 3919,
+      "distinct_ranked": 20,
+      "forced_turn_edges": 0,
+      "median_edge_length_m": 61.73,
+      "nodes_with_outgoing_edges": 1965,
+      "out_degree_histogram": {
+        "1": 648,
+        "2": 721,
+        "3": 558,
+        "4": 35,
+        "5": 3
+      },
+      "profiled_edges": 3919,
+      "restriction_notes": [
+        "relation 1781195 (no_left_turn) touches no admitted edge",
+        "relation 1781196 no_left_turn: 1x1 turn(s) banned",
+        "relation 1781911 no_left_turn: 1x1 turn(s) banned",
+        "relation 1781912 no_left_turn: 1x1 turn(s) banned"
+      ],
+      "routes_found": 5289,
+      "routes_with_a_restart": 0,
+      "search": {
+        "expansions": 305723,
+        "seeds": 3851,
+        "seeds_with_exhausted_budget": 39
+      },
+      "simulable_edges": 3851,
+      "stop_reasons": {
+        "definitive_stop": 4433,
+        "route_end": 856
+      },
+      "surface_counts": {
+        "asphalt_degraded": 1490,
+        "asphalt_good": 2429
+      },
+      "total_directed_length_km": 637.81,
+      "usability_counts": {
+        "paved_reference": 2429,
+        "reference_vtc": 1490
+      }
+    }
+  }
+}
