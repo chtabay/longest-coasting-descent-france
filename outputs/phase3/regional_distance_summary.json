@@ -13,7 +13,7 @@
   "objective": "max distance travelled until the definitive physical stop",
   "production_elevation_method": "raw_25m",
   "replaces": "max elapsed_time (Phase 2)",
-  "runtime_s": 466.7,
+  "runtime_s": 17133.3,
   "scenarios": {
     "paved_reference": {
       "banned_turns": 3,
@@ -36,17 +36,17 @@
         "relation 1781911 no_left_turn: 1x1 turn(s) banned",
         "relation 1781912 no_left_turn: 1x1 turn(s) banned"
       ],
-      "routes_found": 3158,
-      "routes_with_a_restart": 0,
       "search": {
-        "expansions": 29327,
+        "expansions": 16877,
         "seeds": 2383,
         "seeds_with_exhausted_budget": 0
       },
+      "seed_bests_with_a_restart": 0,
+      "seeds_yielding_a_route": 2383,
       "simulable_edges": 2383,
-      "stop_reasons": {
-        "definitive_stop": 2607,
-        "route_end": 551
+      "stop_reasons_of_each_seed_best": {
+        "definitive_stop": 2000,
+        "route_end": 383
       },
       "surface_counts": {
         "asphalt_good": 2429
@@ -77,17 +77,17 @@
         "relation 1781911 no_left_turn: 1x1 turn(s) banned",
         "relation 1781912 no_left_turn: 1x1 turn(s) banned"
       ],
-      "routes_found": 5289,
-      "routes_with_a_restart": 0,
       "search": {
-        "expansions": 305723,
+        "expansions": 135353,
         "seeds": 3851,
-        "seeds_with_exhausted_budget": 39
+        "seeds_with_exhausted_budget": 5
       },
+      "seed_bests_with_a_restart": 0,
+      "seeds_yielding_a_route": 3851,
       "simulable_edges": 3851,
-      "stop_reasons": {
-        "definitive_stop": 4433,
-        "route_end": 856
+      "stop_reasons_of_each_seed_best": {
+        "definitive_stop": 3073,
+        "route_end": 778
       },
       "surface_counts": {
         "asphalt_degraded": 1490,

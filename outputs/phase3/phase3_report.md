@@ -3,6 +3,14 @@
 Experimental regional prototype on the Oisans. **No national claim.** The national search has not
 started.
 
+> **Status of this revision.** Every figure below comes from the rerun on the corrected engine.
+> Two defects that invalidated the previous ranking are fixed and recorded in §9.2: the search
+> pruned on a speed envelope different from the one it published, and the Top 20 was assembled
+> from a per-seed cap rather than globally. The `paved_reference` record survives unchanged at
+> 4 494.8 m; the `reference_vtc` ranking did not, and now leads at 6 291.2 m.
+> **Two reserves are open and neither is closed by this revision:** five VTC seeds are unfinished,
+> and the VTC leader is network-limited rather than energy-limited. See §4 and §9.1.
+
 ## 0. The two problems, side by side
 
 | | Old objective | Definitive objective |
@@ -10,7 +18,7 @@ started.
 | Maximise | `elapsed_time_s` | `distance_travelled_m` |
 | Run ends | speed ≤ 0.30 m/s held for 2 s | speed zero **and** no forward acceleration available |
 | Bends | route ended at the first bend needing braking | rider brakes exactly as much as the envelope demands and continues |
-| Leading Oisans candidate | **734 m**, drops **1.8 m**, 420 s, 6.3 km/h mean | **4495 m**, drops **280 m**, 490 s, 33.0 km/h mean |
+| Leading Oisans candidate (paved) | **734 m**, drops **1.8 m**, 420 s, 6.3 km/h mean | **4495 m**, drops **280 m**, 490 s, 33.0 km/h mean |
 | Why it led | a nearly balanced bicycle creeps just above the stop threshold | it is a real descent |
 | Robustness | both the low *and* the high Crr bound cut its time (−18 %, −51 %) | leader unchanged in 13 of 17 sensitivity variants |
 
@@ -110,58 +118,128 @@ longer asks. Phase 2's *conclusion* — that the elapsed-time objective is degen
 rest on the defective ranking; it rests on the sensitivity signature, where both Crr bounds cut
 the leader's time.
 
-## 4. Regional result
+## 4. Regional result — rerun on the corrected engine
 
-Search: **2 383 seeds, 29 327 expansions, 3 158 routes, 0 seeds budget-limited** for
-`paved_reference`; **3 851 seeds, 305 723 expansions, 5 289 routes, 39 budget-limited (1.0 %)** for
-`reference_vtc`. Both scenarios return the same leader, which is correct: the winner is sealed, so
-both admit it.
+Everything in this section comes from the rerun after the two ranking defects of §9 were fixed.
+The previous figures are superseded, and the change is set out rather than quietly replaced.
 
-### Experimental regional record
+Search: **2 383 seeds, 16 877 expansions, 0 budget-limited** for `paved_reference`;
+**3 851 seeds, 135 353 expansions, 5 budget-limited** for `reference_vtc`. Runtime 17 133 s.
 
-| | |
-|---|---|
-| **Distance** | **4 495 m** |
-| Duration | 490 s |
-| Start / end elevation | 1 636 m → 1 356 m |
-| Net elevation change | −280 m |
-| Ascent crossed | 15.9 m |
-| Mean speed | 33.0 km/h |
-| Maximum speed | 55.1 km/h |
-| Minimum speed before stopping | 0.1 km/h |
-| Braking energy | 52 kJ over 19 binding constraints |
-| Restarts | 0 |
-| Termination | definitive physical stop |
-| Roads | Rue de Piégut → Rue de la Piscine → D 211e → Rue Sainte Marie → … |
-| Surface | asphalt throughout, explicitly tagged |
+The two scenarios no longer return the same leader, and that is the single largest change: with
+unpaved and degraded surfaces admitted, `reference_vtc` reaches a different and much longer
+corridor that the paved graph simply does not contain.
 
-It descends from Alpe d'Huez and ends by genuinely running out of energy, not by running out of
-road. That matches the intuition of "longest coast" — which is worth stating plainly *and* worth
-distrusting: the parameters were not chosen to produce it, and the sensitivity below is what the
-claim rests on.
+### What the corrections moved
 
-**Not every ranked route is energy-limited.** Of the paved top 20, **12 end in a definitive stop,
-7 at the end of the network and 1 with no admissible continuation**. The eight network-limited
-routes are lower bounds on what their corridor could deliver, not measurements of it.
+| | old ranking | corrected ranking |
+|---|---|---|
+| `paved_reference` best | 4 494.8 m | **4 494.8 m** — unchanged |
+| `paved_reference` top 20 | — | **6 of 20 routes were absent from it**, incl. a new rank 3 at 3 965.1 m |
+| `reference_vtc` best | 4 494.8 m | **6 291.2 m (+40 %)** |
+| `reference_vtc` top 20 | — | **20 of 20 routes changed** |
+| `reference_vtc` budget-limited seeds | 39 | 5 |
 
-## 5. Start point — WITHDRAWN, the published figures are wrong
+The paved record surviving is a result, not a reprieve: the per-seed cap was hiding routes below
+it, not above it. The VTC ranking was wrong outright, which is exactly the failure §9.2 predicted —
+a walk pruning on a per-edge envelope discards long routes that the published envelope would have
+kept.
 
-> An adversarial review found, and a direct test confirmed, that
-> `trim_edge_profile` cuts one segment fewer than asked: a requested 25 m offset
-> removes **0.00 m**, and a requested 100 m removes 75.2 m. The smallest offset is
-> therefore a no-op, yet `start_point_strategy.csv` reports a 315.9 m "gain" from
-> it. A start that never moved cannot produce a gain, so the gain is an artefact —
-> most likely of a second confirmed-by-convergence defect in the same function,
-> which keeps a trimmed edge's bend chainage in the untrimmed frame and so
-> displaces the whole speed envelope.
->
-> **`start_point_strategy.csv` and the 8.5 % figure are withdrawn.** The in-edge
-> start question is unanswered, and the two-pass national strategy proposed from
-> it is unsupported until the function is fixed and the measurement repeated.
+### `paved_reference` — top 10
 
-Seeds sit at graph nodes; the event allows a start anywhere along an edge. That approximation is
-real — the adversarial test in `tests/test_phase3_distance.py` shows a start past a rise reaching
-a descent the node-seeded run never reaches — but its size on the Oisans is not yet measured.
+| rank | distance (m) | net Δz (m) | edges | v max (km/h) | binding bends | termination | inferred surface | corridor |
+|---:|---:|---:|---:|---:|---:|---|---:|---|
+| 1 | **4 494.8** | −280.3 | 18 | 55.1 | 19 | definitive stop | 0 % | Rue de Piégut … D 211G |
+| 2 | 4 179.0 | −257.6 | 17 | 55.1 | 22 | definitive stop | 0 % | Rue de Piégut … Rue de la Grande Fontaine |
+| 3 | 3 965.1 | −280.3 | 9 | 55.1 | 14 | definitive stop | 0 % | Rue de Piégut … D 211e |
+| 4 | 3 809.8 | −252.6 | 13 | 55.1 | 18 | definitive stop | 0 % | Rue du Col … D 211G |
+| 5 | 3 679.7 | −233.4 | 17 | 55.1 | 16 | definitive stop | 0 % | service … D 211G |
+| 6 | 3 493.9 | −230.0 | 12 | 55.1 | 21 | definitive stop | 0 % | Rue du Col … Rue de la Grande Fontaine |
+| 7 | 3 363.8 | −210.8 | 16 | 55.1 | 19 | definitive stop | 0 % | service … Rue de la Grande Fontaine |
+| 8 | 3 280.1 | −252.6 | 4 | 55.1 | 13 | definitive stop | 0 % | Rue du Col … D 211e |
+| 9 | 3 149.9 | −233.4 | 8 | 55.1 | 11 | definitive stop | 0 % | service … D 211e |
+| 10 | 2 798.0 | −197.0 | 2 | 55.5 | 16 | definitive stop | 0 % | Route de Sardonne … D 44B |
+
+Full table in `top20_paved.csv`. Of the paved top 20, **13 end in a definitive stop, 6 at the end
+of the network and 1 with no admissible continuation**. The seven that do not stop are lower bounds
+on what their corridor delivers, not measurements of it.
+
+### `reference_vtc` — top 10
+
+| rank | distance (m) | net Δz (m) | edges | v max (km/h) | binding bends | termination | inferred surface | corridor |
+|---:|---:|---:|---:|---:|---:|---|---:|---|
+| 1 | **6 291.2** | −443.3 | 61 | 68.3 | 32 | network end | 34.3 % | Route des Lacs … Avenue de Brandes |
+| 2 | 6 253.6 | −443.3 | 57 | 56.9 | 28 | network end | 31.6 % | Route des Lacs … Avenue de Brandes |
+| 3 | 6 174.7 | −443.3 | 60 | 68.3 | 37 | network end | 34.3 % | Route des Lacs … Avenue de Brandes |
+| 4 | 6 159.2 | −443.3 | 59 | 68.3 | 37 | network end | 34.1 % | Route des Lacs … Avenue de Brandes |
+| 5 | 6 141.2 | −443.3 | 59 | 68.3 | 31 | network end | 33.9 % | Route des Lacs … Avenue de Brandes |
+| 6 | 6 096.0 | −443.3 | 61 | 68.3 | 33 | network end | 35.4 % | Route des Lacs … Chemin de la Chapelle |
+| 7 | 6 058.4 | −443.3 | 57 | 56.9 | 29 | network end | 32.6 % | Route des Lacs … Chemin de la Chapelle |
+| 8 | 5 979.5 | −443.3 | 60 | 68.3 | 38 | network end | 35.4 % | Route des Lacs … Chemin de la Chapelle |
+| 9 | 5 964.0 | −443.3 | 59 | 68.3 | 37 | network end | 35.2 % | Route des Lacs … Chemin de la Chapelle |
+| 10 | 5 946.1 | −443.3 | 59 | 68.3 | 32 | network end | 35.1 % | Route des Lacs … Chemin de la Chapelle |
+
+Full table in `top20_vtc.csv`.
+
+**The VTC record is not an energy-limited result and must not be read as one.** All ten leading
+routes terminate at `network_end`, all share the same −443.3 m net drop, and the leader still
+carries **8.6 km/h** when the admitted graph runs out. They are ten variants threading the same
+descent from Route des Lacs. The figure is therefore a **lower bound on that corridor**, not a
+measurement of where the bicycle stops. Of the VTC top 20, 10 stop definitively and 10 end at the
+network.
+
+The end point (45.086881, 6.058396) sits well inside the extract — the bounding box runs to
+longitude 6.02, some 3 km further west — so the route is cut by a real dead end in the admitted
+graph, not by the edge of the download. Which dead end, and whether the continuations there were
+excluded by usability rather than absent, is settled in the manual audit of §4.1.
+
+**A third of the VTC leader's surface is inferred, not tagged** (34.3 %, split
+`asphalt_good` 66 % / `asphalt_degraded` 34 %). The paved leader is 100 % explicitly tagged
+asphalt. The two records are therefore not equally well evidenced, and the VTC one inherits the
+uncertainty of the surface inference on top of everything else.
+
+### Open reserve: 5 unfinished VTC seeds
+
+Five `reference_vtc` seeds exhaust the 5 000-expansion production budget. A seed that runs out of
+allowance rather than out of graph has **not been answered**: its distance is a lower bound on its
+own optimum. Until they are closed, the VTC baseline is exhaustive for 3 846 of 3 851 seeds and no
+more, and the 6 291.2 m figure cannot be called a regional maximum even within the extract.
+`scripts/phase3_resolve_budget_limited.py` identifies them and re-runs only those, raising the
+allowance until each walk ends because it ran out of graph rather than out of budget; a seed that
+stays unfinished at the highest allowance tried is reported as unfinished with its expansion count,
+never truncated silently.
+
+## 5. Start point — remeasured, and the earlier gain retracted
+
+Seeds sit at graph nodes; the event allows a start anywhere along an edge. The size of that
+approximation on the Oisans is now measured: **0.0 % on every ranked route of both scenarios.**
+
+### The retracted figure, and what actually produced it
+
+The earlier report published an 8.5 % gain from starting inside an edge, with a headline 315.9 m
+on the leader. It was an artefact of comparing two different things, and the arithmetic is exact:
+
+    4 494.85 m  (the distinct-ranked route's distance, used as the baseline)
+  − 4 178.98 m  (what a fresh seed search returns for that seed)
+  = 315.87 m    (the entire reported "gain")
+
+`optimise_start` measured its baseline as `route.distance_m` — a *distinct-ranked* route — while
+every candidate came from `search_distance_from_edge(keep_best=1)`, which returns that seed's own
+best route. Those are different routes. Offset zero was never evaluated, so nothing caught it.
+An adversarial review had also reported that `trim_edge_profile` cut one segment fewer than asked,
+making the smallest offset a no-op; that was a real and separate defect, fixed, but it is not what
+produced the 315.9 m.
+
+*Fixed:* the baseline is measured with the same procedure at offset zero. Both previously published
+seeds then have their optimum at **offset 0 with gain 0** — starting later only removes road.
+
+### This is a measurement, not a theorem
+
+Zero gain here does not generalise. Starting later means restarting at 15 km/h from the new point,
+so on a different profile — a rise before a descent, a bend that costs speed early — dropping an
+unfavourable prefix genuinely can extend the total. A synthetic case where `offset > 0` is strictly
+optimal is pinned in `tests/test_phase3_distance.py` precisely so the optimiser cannot quietly
+specialise on the answer the Oisans happens to give.
 
 ## 6. Sensitivity: is distance more robust than time?
 
@@ -196,16 +274,36 @@ median change is near zero, so the failure is concentrated, not diffuse.
 
 ## 7. Validation
 
-- **40 of 40** real subgraphs give the identical optimum, distance and path, against a brute-force
-  enumeration that shares none of the engine's shortcuts.
-- 35 cases in `tests/test_phase3_distance.py`: a flat stopping on resistance alone
-  inside its exact energy bracket; long gentle versus short steep compared at equal drop; a
-  descent then a long flat; a small clearable rise; a rise consuming all the energy; a zero at a
-  boundary that restarts and one that does not; a mid-segment zero that is always definitive; a
-  start from rest; a bend that costs speed without ending the run; the cycle rule containing a
-  loop; a geometrically longer branch that is energetically worse; a fork whose furthest choice is
-  neither steepest nor lowest; a forbidden road never entered.
-- 148 tests pass with the network refused for the whole session.
+### What the old 40/40 did and did not establish
+
+The previous report claimed 40 of 40 real subgraphs matched "a brute-force enumeration that shares
+none of the engine's shortcuts". **That claim was false in its second half.**
+`brute_force_distance_routes` walked with the *same* per-edge envelope as the engine and only
+reported with the route-level one. The two implementations shared the flawed pruning key, so their
+agreement said nothing about it — which is why the defect of §9.2 survived a validation designed to
+catch exactly that kind of error. Two procedures making the same mistake agree.
+
+### The oracle that replaces it
+
+`exhaustive_routes` applies **no budget, no keep-best, no dominance and no ordering heuristic**,
+and records prefixes as routes in their own right. It shares the *evaluation* with the engine —
+unavoidable and intended, since that evaluation is the definition of the objective — but it shares
+no pruning key, because it prunes nothing. It **raises rather than truncating** at its path cap: a
+silently truncated oracle would be worse than no oracle, because a short enumeration reports an
+optimum no larger than the true one and an engine defect could hide behind it.
+
+- **126 of 126** real Oisans seeds: identical optimum, **identical path**, worst disagreement
+  **0.000000000 m**. Coverage is every seed whose subgraph an unpruned oracle can enumerate.
+- **40 of 40** in the published `routing_validation.csv`, now against that oracle rather than
+  against a co-defective brute force.
+- Equality also holds **with `allow_cycles=True`**, which is the case that matters: lifting the
+  trip rule multiplies the branching factor, and that is where a pruning defect would reappear
+  unnoticed.
+- The exact global ranking is proved equal to ranking every route at once, and invariant under
+  seed order.
+
+**159 tests** pass with the network refused for the whole session, 46 of them in
+`tests/test_phase3_distance.py`.
 
 ## 8. The degeneracy of the new objective, disclosed
 
@@ -220,26 +318,39 @@ ranked routes does.
 
 ## 9. Open limitations
 
-- **The ranking below rank 2 is not established.** The search keeps only the two longest routes
-  per seed, so a seed's third-best distinct route can outrank another seed's best and never be
-  seen. An adversarial review puts the understatement of ranks 3-20 at 130 m to 566 m; that claim
-  is not yet verified.
-- **CONFIRMED: the search prunes on one speed envelope and reports on another.** The depth-first
-  walk uses the per-edge envelope, blind within one chord of every junction; the published
-  distance comes from the joined-geometry envelope. Because the two disagree, the top-k kept per
-  seed can exclude the longest route: on one seed the engine reports 159.3 m where brute force
-  finds 1020.9 m. With the envelope disabled the two agree exactly (6254.4 m), isolating the
-  cause. **The 40/40 brute-force validation cannot detect this**, because
-  `brute_force_distance_routes` walks with the same per-edge envelope and only reports with the
-  route-level one: the two implementations share the flawed pruning key, so their agreement says
-  nothing about it. That validation establishes the integrator and the traversal, not the ranking.
-- **CONFIRMED: `optimise_start` compared unlike quantities.** Its baseline was the
-  distinct-ranked route's distance while every candidate came from a fresh seed search returning
-  that seed's own best route, and offset zero was never evaluated. The published 315.9 m "gain" is
-  exactly the difference between those two numbers (4494.85 − 4178.98). On both published seeds
-  the distance decreases by the trimmed amount at every offset, so the correct answer is offset 0
-  with gain 0. Fixed by measuring the baseline with the same procedure at offset zero; the
-  measurement still has to be repeated.
+### 9.1 Still open
+
+- **Five `reference_vtc` seeds are unfinished.** They exhaust the production budget, so their
+  distances are lower bounds on their own optima and the VTC baseline is exhaustive for 3 846 of
+  3 851 seeds. Until they close, 6 291.2 m is not a regional maximum even within the extract.
+- **The VTC record is network-limited, not energy-limited.** The whole VTC top 10 ends at
+  `network_end`; the leader still carries 8.6 km/h when the admitted graph runs out. It bounds its
+  corridor from below and nothing more.
+- **A third of the VTC leader's surface is inferred** (34.3 %), against 0 % for the paved leader.
+  The two records are not equally well evidenced.
+- **The trip rule is a definition, and it is unmeasured on real data.** `allow_cycles` shows on a
+  synthetic lappable loop that lifting it takes 250.5 m to 601.2 m — same data, same physics,
+  4 laps. Its effect on the Oisans is not yet known.
+
+### 9.2 Fixed since the last report, recorded so the history stays legible
+
+- **FIXED — the search pruned on one speed envelope and reported on another.** The walk chained
+  per-edge simulations under `edge_bend_limits`, blind within one chord of every junction, while
+  the published distance came from the joined-geometry envelope. Branches were therefore kept or
+  dropped on a quantity the study never publishes: on one seed the walk kept a route worth 159.3 m
+  where a full enumeration reached 1020.9 m. `simulate_path` is now the single definition of what
+  a path does; every expansion re-simulates the whole path. That is quadratic in path length and
+  much slower, and it is the price of pruning on the published quantity. `_run_edge` was deleted
+  rather than left unused. **Cost of the defect: the entire `reference_vtc` ranking (4 494.8 →
+  6 291.2 m) and 6 of the 20 paved routes.**
+- **FIXED — the Top 20 was assembled from a per-seed cap.** Keeping the two best routes of each
+  seed and ranking the union is not the global ranking: one seed can legitimately own several of
+  the leading places. `global_longest` keeps a running floor instead, proved equal to ranking every
+  route at once and invariant under seed order.
+- **FIXED — `optimise_start` compared unlike quantities.** Baseline `route.distance_m` (a
+  distinct-ranked route) against candidates from a fresh seed search (that seed's own best), with
+  offset zero never evaluated. The 315.9 m "gain" is exactly 4 494.85 − 4 178.98. Remeasured: both
+  seeds have their optimum at offset 0, gain 0. See §5.
 - Reviewed and **refuted on impact**, recorded so the same alarm is not raised twice: the
   untoleranced chord comparison in `bend_radii` (0 of 48 643 bends change); the direction
   asymmetry in `subsample_uniform` (a discretisation property — the 5 m sample set that drives
@@ -247,10 +358,10 @@ ranked routes does.
   `route_bend_limits` (dead for every published row, all of which carry `start_offset_m = 0`);
   and the un-rebased bends in `trim_edge_profile` (latent, no published number moves — fixed
   regardless).
-- Eight of the paved top 20 are network-limited; their corridors are unexplored beyond the extract.
-- 39 of 3 851 `reference_vtc` seeds hit the expansion budget.
-- The depth-first walk uses the per-edge envelope and the authoritative evaluation the route-level
-  one; they now agree on outcome, but the walk remains mildly optimistic near junctions.
+### 9.3 Standing limitations of the model and the data
+
+- Seven of the paved top 20 and ten of the VTC top 20 are network-limited; their corridors are
+  unexplored beyond the extract.
 - Rolling-resistance coefficients are bounded from the literature, not measured, and the high
   bound reorders the ranking.
 - Wind is zero and air density fixed; neither is a scenario yet.
