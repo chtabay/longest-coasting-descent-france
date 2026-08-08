@@ -30,8 +30,8 @@ from coastdown.curvature import LATERAL_LIMIT_SCENARIOS_M_S2
 from coastdown.distance_search import (
     DistanceBudget,
     DistanceRoute,
-    brute_force_distance_routes,
     evaluate_distance_route,
+    exhaustive_routes,
     global_longest,
     search_distance_from_edge,
     start_offsets,
@@ -517,17 +517,23 @@ def main() -> None:
         )
         if budget.exhausted or not engine:
             continue
-        reference = brute_force_distance_routes(graph, profiles, seed)
-        if not reference or len(reference) > 400:
+        # The oracle prunes nothing, so it is only usable where the subgraph is
+        # small. It raises rather than returning a truncated enumeration, and a
+        # seed it refuses is skipped rather than silently half-checked.
+        try:
+            reference = exhaustive_routes(graph, profiles, seed, max_paths=400)
+        except RuntimeError:
+            continue
+        if not reference:
             continue
         checked += 1
         best = max(reference, key=lambda item: item.distance_m)
         validation_rows.append(
             {
                 "seed_edge_id": seed,
-                "brute_force_routes": len(reference),
+                "oracle_routes": len(reference),
                 "engine_best_distance_m": round(engine[0].distance_m, 6),
-                "brute_force_best_distance_m": round(best.distance_m, 6),
+                "oracle_best_distance_m": round(best.distance_m, 6),
                 "identical_distance": abs(engine[0].distance_m - best.distance_m) < 1e-9,
                 "identical_path": engine[0].edge_ids == best.edge_ids,
                 "expansions": budget.expansions,
@@ -535,7 +541,7 @@ def main() -> None:
         )
     write_csv(output / "routing_validation.csv", validation_rows)
     agreed = sum(1 for row in validation_rows if row["identical_path"])
-    print(f"routing validation: {agreed}/{len(validation_rows)} match brute force")
+    print(f"routing validation: {agreed}/{len(validation_rows)} match the unpruned oracle")
 
     # --- start point ---------------------------------------------------------
     start_rows = []

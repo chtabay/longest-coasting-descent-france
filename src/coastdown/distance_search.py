@@ -463,32 +463,15 @@ def _piece(graph: RoutableGraph, edge_id: str) -> tuple[int, int]:
     return (edge.osm_way_id, edge.piece_index)
 
 
-def _run_edge(
-    profile: EdgeProfile,
-    entry_speed: float,
-    machine: BicycleSystem,
-    air: Environment,
-    lateral_scenario: str,
-    braking: str,
-    zero_speed_epsilon_m_s: float,
-) -> CoastingRun:
-    road = RoadProfile(
-        profile.segment_travelled_m,
-        profile.segment_grade_ratio,
-        profile.segment_rolling_resistance,
-    )
-    return simulate_coasting(
-        road,
-        machine,
-        air,
-        initial_speed_m_s=entry_speed,
-        bend_limits=edge_bend_limits(profile, lateral_scenario),
-        braking=braking,
-        zero_speed_epsilon_m_s=zero_speed_epsilon_m_s,
-    )
+# The per-edge run that used to drive the walk is deliberately gone. It applied
+# `edge_bend_limits`, which is blind within one chord of every junction, so a
+# chain of them disagreed with the published route evaluation and pruned on a
+# quantity the study never reports. `simulate_path` is the only way a path is
+# ever run now, and leaving a per-edge shortcut in the module would invite the
+# same defect back.
 
 
-def search_distance_from_edge(
+def finished_paths(
     graph: RoutableGraph,
     profiles: dict[str, EdgeProfile],
     seed_edge_id: str,
@@ -501,10 +484,10 @@ def search_distance_from_edge(
     zero_speed_epsilon_m_s: float = DEFAULT_ZERO_SPEED_EPSILON_M_S,
     start_offset_m: float = 0.0,
     budget: DistanceBudget | None = None,
-    keep_best: int | None = 2,
     min_distance_m: float = 0.0,
-) -> tuple[list[DistanceRoute], DistanceBudget]:
-    """Enumerate coasting routes from one seed and keep the longest.
+    allow_cycles: bool = False,
+) -> tuple[list[tuple[float, str, list[str]]], DistanceBudget]:
+    """Every route the walk finishes, as (distance, termination, path).
 
     Depth-first under the cycle rule. Every expansion re-simulates the whole
     path through :func:`simulate_path`, so a branch is judged on exactly the
@@ -517,12 +500,29 @@ def search_distance_from_edge(
     at that boundary can say. Continuations are therefore explored from zero
     speed as well.
 
-    ``keep_best`` caps how many of this seed's routes are returned; ``None``
-    returns every route the walk recorded. ``min_distance_m`` discards routes
-    shorter than a caller-supplied floor before they are ever evaluated. Both
-    act on finished routes only — neither prunes the walk — so they change what
-    is *reported*, never what is *explored*. Together they let a caller assemble
-    an exact global ranking without holding every route of every seed in memory.
+    Routes come back as bare tuples rather than :class:`DistanceRoute` records
+    because the walk already knows each one's authoritative distance — it is the
+    value it pruned on — and that is all a ranking needs. Building the full
+    record re-simulates the path a second time, which is wasted on every route
+    a caller is about to discard.
+
+    ``min_distance_m`` drops finished routes below a caller-supplied floor. It
+    acts on finished routes only and never prunes the walk, so it changes what
+    is *reported*, never what is *explored*.
+
+    ``allow_cycles`` changes the *problem*, not the engine's accuracy on it. The
+    default is the Phase 2 trip definition: each physical way piece at most once,
+    whichever direction. Setting it lifts that rule, so a route may lap a
+    roundabout, run a road out and back, or shuttle in a dip. Termination is then
+    left entirely to physics — over any closed cycle gravity nets to zero while
+    rolling resistance and drag only remove energy, so repetition is
+    self-limiting and a lapping route eventually stops. That argument assumes the
+    windless reference environment; under a wind able to supply energy it does
+    not hold and this mode has no termination guarantee.
+
+    What is lost with the rule is the search's small branching factor. The tree
+    grows fast enough that ``max_expansions`` will usually bind, and a result
+    from an exhausted budget is a lower bound on the answer, not the answer.
     """
     machine = bicycle or BicycleSystem()
     air = environment or Environment()
@@ -541,12 +541,13 @@ def search_distance_from_edge(
     ]
 
     def finish(path: list[str], distance: float, termination: str) -> None:
+        # The floor is the only thing that discards a finished route here.
+        # Truncating to a best-of-N would make the walk's output depend on the
+        # order branches happen to be popped, which a caller assembling a global
+        # ranking must not have to reason about.
         if distance < min_distance_m:
             return
         finished.append((distance, termination, path))
-        if keep_best is not None and len(finished) > keep_best * 8:
-            finished.sort(key=lambda item: -item[0])
-            del finished[keep_best:]
 
     while stack:
         if limits.expansions >= limits.max_expansions:
@@ -579,7 +580,7 @@ def search_distance_from_edge(
         continuations = [
             candidate
             for candidate in graph.continuations(path[-1])
-            if _piece(graph, candidate) not in used
+            if (allow_cycles or _piece(graph, candidate) not in used)
             and profiles.get(candidate) is not None
             and profiles[candidate].simulable
         ]
@@ -591,6 +592,44 @@ def search_distance_from_edge(
             stack.append(([*path, candidate], used | {_piece(graph, candidate)}))
 
     finished.sort(key=lambda item: -item[0])
+    return finished, limits
+
+
+def search_distance_from_edge(
+    graph: RoutableGraph,
+    profiles: dict[str, EdgeProfile],
+    seed_edge_id: str,
+    *,
+    bicycle: BicycleSystem | None = None,
+    environment: Environment | None = None,
+    initial_speed_m_s: float = INITIAL_SPEED_M_S,
+    lateral_scenario: str = DEFAULT_LATERAL_SCENARIO,
+    braking: str = "ideal",
+    zero_speed_epsilon_m_s: float = DEFAULT_ZERO_SPEED_EPSILON_M_S,
+    start_offset_m: float = 0.0,
+    budget: DistanceBudget | None = None,
+    keep_best: int | None = 2,
+    min_distance_m: float = 0.0,
+    allow_cycles: bool = False,
+) -> tuple[list[DistanceRoute], DistanceBudget]:
+    """:func:`finished_paths`, with the kept routes materialised in full."""
+    machine = bicycle or BicycleSystem()
+    air = environment or Environment()
+    finished, limits = finished_paths(
+        graph,
+        profiles,
+        seed_edge_id,
+        bicycle=machine,
+        environment=air,
+        initial_speed_m_s=initial_speed_m_s,
+        lateral_scenario=lateral_scenario,
+        braking=braking,
+        zero_speed_epsilon_m_s=zero_speed_epsilon_m_s,
+        start_offset_m=start_offset_m,
+        budget=budget,
+        min_distance_m=min_distance_m,
+        allow_cycles=allow_cycles,
+    )
     best = [
         evaluate_distance_route(
             graph,
@@ -621,6 +660,7 @@ def exhaustive_routes(
     lateral_scenario: str = DEFAULT_LATERAL_SCENARIO,
     braking: str = "ideal",
     max_paths: int | None = None,
+    allow_cycles: bool = False,
 ) -> list[DistanceRoute]:
     """Every admissible route from a seed, enumerated with no pruning at all.
 
@@ -684,7 +724,7 @@ def exhaustive_routes(
         nexts = [
             candidate
             for candidate in graph.continuations(path[-1])
-            if _piece(graph, candidate) not in used
+            if (allow_cycles or _piece(graph, candidate) not in used)
             and profiles.get(candidate) is not None
             and profiles[candidate].simulable
         ]
@@ -739,6 +779,25 @@ def distinct_longest(routes: Sequence[DistanceRoute], limit: int) -> list[Distan
     return kept
 
 
+def _ranked_candidates(
+    candidates: Sequence[tuple[float, str, str, list[str]]],
+    limit: int,
+) -> list[tuple[float, str, str, list[str]]]:
+    """:func:`distinct_longest` on bare (distance, seed, termination, path)."""
+    ordered = sorted(candidates, key=lambda item: -item[0])
+    kept: list[tuple[float, str, str, list[str]]] = []
+    covered: list[set[str]] = []
+    for candidate in ordered:
+        edges = set(candidate[3])
+        if any(edges <= seen or seen <= edges for seen in covered):
+            continue
+        kept.append(candidate)
+        covered.append(edges)
+        if len(kept) >= limit:
+            break
+    return kept
+
+
 def global_longest(
     graph: RoutableGraph,
     profiles: dict[str, EdgeProfile],
@@ -768,15 +827,14 @@ def global_longest(
     routes actually found.
     """
     floor = float(search_kwargs.pop("min_distance_m", 0.0))
-    pool: list[DistanceRoute] = []
+    pool: list[tuple[float, str, str, list[str]]] = []
     for seed in seeds:
         budget = budget_factory() if budget_factory is not None else DistanceBudget()
-        found, budget = search_distance_from_edge(
+        found, budget = finished_paths(
             graph,
             profiles,
             seed,
             budget=budget,
-            keep_best=None,
             min_distance_m=floor,
             **search_kwargs,
         )
@@ -784,13 +842,28 @@ def global_longest(
             on_seed(seed, budget)
         if not found:
             continue
-        pool.extend(found)
-        ranking = distinct_longest(pool, limit)
+        pool.extend((distance, seed, termination, path) for distance, termination, path in found)
+        ranking = _ranked_candidates(pool, limit)
         if len(ranking) >= limit:
-            floor = max(floor, ranking[-1].distance_m)
+            floor = max(floor, ranking[-1][0])
             # Anything under the new floor can no longer reach the ranking.
-            pool = [route for route in pool if route.distance_m >= floor]
-    return distinct_longest(pool, limit)
+            pool = [candidate for candidate in pool if candidate[0] >= floor]
+    evaluation_kwargs = {
+        key: value
+        for key, value in search_kwargs.items()
+        if key not in {"budget", "keep_best", "max_expansions", "allow_cycles"}
+    }
+    return [
+        evaluate_distance_route(
+            graph,
+            profiles,
+            path,
+            seed_edge_id=seed,
+            termination=termination,
+            **evaluation_kwargs,
+        )
+        for _, seed, termination, path in _ranked_candidates(pool, limit)
+    ]
 
 
 def start_offsets(profile: EdgeProfile, step_m: float) -> tuple[float, ...]:

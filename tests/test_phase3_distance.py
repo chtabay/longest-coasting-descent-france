@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import itertools
 import math
+from collections import Counter
 
 import pytest
 from test_phase2_graph_and_search import (
@@ -622,6 +623,124 @@ def test_the_running_floor_never_hides_a_route_that_belongs_in_the_ranking() -> 
         budget_factory=lambda: DistanceBudget(max_expansions=10**6),
     )
     assert [route.edge_ids for route in forwards] == [route.edge_ids for route in backwards]
+
+
+def lap_graph(trunk_grade: float = -0.05, lap_grade: float = 0.02):
+    """A trunk that descends into a closed 50 m lap.
+
+    Ways 2 and 3 share both endpoints, so together they form a cycle that
+    returns the bicycle to the elevation it entered at. Under the trip rule the
+    lap can be ridden once; without it, as often as the energy allows.
+    """
+    trunk = way(1, straight(0, 200), ASPHALT, last_node=21)
+    out = way(2, straight(200, 25), ASPHALT, first_node=21, last_node=22)
+    back = way(3, list(reversed(straight(200, 25))), ASPHALT, first_node=22, last_node=21)
+    out["geometry"][0] = trunk["geometry"][-1]
+    back["geometry"][-1] = trunk["geometry"][-1]
+    back["geometry"][0] = out["geometry"][-1]
+    graph = build_graph(osm(trunk, out, back), "paved_reference")
+    return graph, profiles_for(graph, {1: trunk_grade, 2: -lap_grade, 3: lap_grade})
+
+
+def test_lifting_the_trip_rule_changes_the_answer_on_a_lappable_loop() -> None:
+    """The rule is a definition, and it is worth what it costs.
+
+    Both runs use the same engine, the same data and the same physics; only the
+    definition of a trip differs. The gap is the whole reason the rule cannot be
+    dropped quietly: it more than doubles the reported distance without any
+    physical claim changing.
+    """
+    graph, profiles = lap_graph()
+    seed = forward_edge(graph, 1)
+
+    once_only, budget_once = search_distance_from_edge(
+        graph, profiles, seed, budget=DistanceBudget(max_expansions=10**6), keep_best=1
+    )
+    lapping, budget_lapping = search_distance_from_edge(
+        graph,
+        profiles,
+        seed,
+        budget=DistanceBudget(max_expansions=10**6),
+        keep_best=1,
+        allow_cycles=True,
+    )
+    assert not budget_once.exhausted and not budget_lapping.exhausted
+    assert lapping[0].distance_m > 2 * once_only[0].distance_m
+    # Under the rule each way piece appears once; without it the lap repeats.
+    assert len(set(once_only[0].edge_ids)) == len(once_only[0].edge_ids)
+    assert len(set(lapping[0].edge_ids)) < len(lapping[0].edge_ids)
+
+
+def test_lapping_stops_itself_without_needing_the_rule() -> None:
+    """Nothing but physics bounds the lapping search, and that is enough.
+
+    Every lap returns the bicycle to the same elevation with strictly less
+    energy, so the number of laps is finite. The search terminates on its own
+    budget untouched — the route is not cut off, it runs out of speed.
+
+    This is the windless reference scenario. Under a wind able to supply energy
+    the decay argument fails and this mode has no termination guarantee.
+    """
+    graph, profiles = lap_graph()
+    seed = forward_edge(graph, 1)
+    routes, budget = search_distance_from_edge(
+        graph,
+        profiles,
+        seed,
+        budget=DistanceBudget(max_expansions=10**6),
+        keep_best=1,
+        allow_cycles=True,
+    )
+    assert not budget.exhausted, "the walk ended on its own, not on the budget"
+    laps = Counter(routes[0].edge_ids).most_common(1)[0][1]
+    assert laps >= 2, "the loop must actually be ridden more than once"
+    assert routes[0].stop_reason in {"route_end", "definitive_stop"}
+
+
+def test_the_flag_changes_the_problem_not_the_engine() -> None:
+    """On a graph with no cycle to ride, the two modes must agree exactly."""
+    graph, profiles = fan_graph(4)
+    seeds = sorted(edge_id for edge_id, item in profiles.items() if item.simulable)
+    for seed in seeds:
+        strict, _ = search_distance_from_edge(
+            graph, profiles, seed, budget=DistanceBudget(max_expansions=10**6), keep_best=1
+        )
+        free, _ = search_distance_from_edge(
+            graph,
+            profiles,
+            seed,
+            budget=DistanceBudget(max_expansions=10**6),
+            keep_best=1,
+            allow_cycles=True,
+        )
+        assert [route.edge_ids for route in strict] == [route.edge_ids for route in free]
+        assert [route.distance_m for route in strict] == [
+            pytest.approx(route.distance_m) for route in free
+        ]
+
+
+def test_the_engine_still_matches_the_oracle_once_cycles_are_allowed() -> None:
+    """The corrected pruning must survive the change of semantics.
+
+    Lifting the rule multiplies the branching factor, which is exactly the
+    situation in which a pruning defect would reappear unnoticed.
+    """
+    graph, profiles = lap_graph()
+    seed = forward_edge(graph, 1)
+    engine, budget = search_distance_from_edge(
+        graph,
+        profiles,
+        seed,
+        budget=DistanceBudget(max_expansions=10**6),
+        keep_best=1,
+        allow_cycles=True,
+    )
+    reference = exhaustive_routes(graph, profiles, seed, max_paths=20000, allow_cycles=True)
+    assert not budget.exhausted
+    assert engine and reference
+    best = max(reference, key=lambda item: item.distance_m)
+    assert engine[0].distance_m == pytest.approx(best.distance_m, abs=1e-9)
+    assert engine[0].edge_ids == best.edge_ids
 
 
 def test_the_oracle_refuses_to_truncate_rather_than_report_a_smaller_optimum() -> None:
