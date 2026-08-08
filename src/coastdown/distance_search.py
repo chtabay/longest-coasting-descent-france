@@ -12,10 +12,14 @@ share or duration.  A nearly level route may win if it genuinely rolls further.
 
 Three properties make distance a better-behaved objective than time here.
 
-*Distance is exactly additive across edges.*  Elapsed time was not, because the
-old stop rule carried dwell state across boundaries, so the depth-first
-accumulator was an approximation that had to be re-checked at the end.  Summed
-edge distances are the route distance, so the search prunes on the true value.
+*Distance is monotone along a path.*  Extending a route never shortens it, so a
+prefix that has already stopped can be abandoned outright.  What distance is
+*not* is separable edge by edge: the bend envelope is measured across the joined
+geometry, so a turn spanning a junction couples the edges on either side of it.
+An accumulator summed from per-edge runs is therefore not the objective, and the
+search does not use one — every expansion re-simulates the whole path.  That is
+quadratic in path length and much slower than accumulating, and it is the price
+of pruning on the published quantity rather than on an approximation of it.
 
 *The run ends where physics ends it.*  There is no 0.30 m/s threshold to sit
 just above, so the near-equilibrium creep that dominated the time ranking earns
@@ -36,7 +40,7 @@ from __future__ import annotations
 
 import itertools
 import math
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 
 from .coasting import (
@@ -497,26 +501,28 @@ def search_distance_from_edge(
     zero_speed_epsilon_m_s: float = DEFAULT_ZERO_SPEED_EPSILON_M_S,
     start_offset_m: float = 0.0,
     budget: DistanceBudget | None = None,
-    keep_best: int = 2,
+    keep_best: int | None = 2,
+    min_distance_m: float = 0.0,
 ) -> tuple[list[DistanceRoute], DistanceBudget]:
     """Enumerate coasting routes from one seed and keep the longest.
 
-    Depth-first under the cycle rule. Because distance adds exactly across
-    edges, the accumulator carried down the search is the true objective, so a
-    branch is never kept or dropped on an approximation.
-
-    The walk applies the bend envelope edge by edge, which is blind within one
-    chord of each junction; the kept routes are then re-evaluated with the
-    envelope measured across the joined geometry. The walk is therefore mildly
-    optimistic about bends near junctions, which is acceptable because braking
-    barely moves distance at all — the two braking representations differ by
-    nothing, and disabling the envelope entirely changes distance by well under
-    a percent.
+    Depth-first under the cycle rule. Every expansion re-simulates the whole
+    path through :func:`simulate_path`, so a branch is judged on exactly the
+    distance that would be published for it. Nothing is pruned on an
+    approximation of the objective, and nothing is pruned on an envelope other
+    than the authoritative one.
 
     An edge that ends exactly at rest is not the end of the search: the next
     edge may be steep enough to restart the bicycle, and only the restart test
     at that boundary can say. Continuations are therefore explored from zero
     speed as well.
+
+    ``keep_best`` caps how many of this seed's routes are returned; ``None``
+    returns every route the walk recorded. ``min_distance_m`` discards routes
+    shorter than a caller-supplied floor before they are ever evaluated. Both
+    act on finished routes only — neither prunes the walk — so they change what
+    is *reported*, never what is *explored*. Together they let a caller assemble
+    an exact global ranking without holding every route of every seed in memory.
     """
     machine = bicycle or BicycleSystem()
     air = environment or Environment()
@@ -535,8 +541,10 @@ def search_distance_from_edge(
     ]
 
     def finish(path: list[str], distance: float, termination: str) -> None:
+        if distance < min_distance_m:
+            return
         finished.append((distance, termination, path))
-        if len(finished) > keep_best * 8:
+        if keep_best is not None and len(finished) > keep_best * 8:
             finished.sort(key=lambda item: -item[0])
             del finished[keep_best:]
 
@@ -598,7 +606,7 @@ def search_distance_from_edge(
             zero_speed_epsilon_m_s=zero_speed_epsilon_m_s,
             termination=termination,
         )
-        for _, termination, path in finished[:keep_best]
+        for _, termination, path in (finished if keep_best is None else finished[:keep_best])
     ]
     best.sort(key=lambda item: -item.distance_m)
     return best, limits
@@ -729,6 +737,60 @@ def distinct_longest(routes: Sequence[DistanceRoute], limit: int) -> list[Distan
         if len(kept) >= limit:
             break
     return kept
+
+
+def global_longest(
+    graph: RoutableGraph,
+    profiles: dict[str, EdgeProfile],
+    seeds: Sequence[str],
+    limit: int,
+    *,
+    budget_factory: Callable[[], DistanceBudget] | None = None,
+    on_seed: Callable[[str, DistanceBudget], None] | None = None,
+    **search_kwargs,
+) -> list[DistanceRoute]:
+    """The exact global ranking, without holding every route of every seed.
+
+    Keeping the *n* best routes of each seed and ranking the union does not give
+    the global top *n*: one seed can legitimately own several of the leading
+    places, and a per-seed cap silently drops the rest. Keeping everything is
+    exact but unbounded.
+
+    This keeps a running floor instead. Seeds are searched in turn; after each,
+    the current ranking is recomputed and its last distance becomes the floor
+    for the seeds still to come. The floor only ever rises, and a route rejected
+    against an earlier, lower floor was already shorter than a floor that has
+    since grown — so it could not have entered the final ranking. Every route
+    that survives is evaluated; the ones discarded never needed to be.
+
+    The one thing the floor must not do is start above the answer, so it starts
+    at whatever the caller asked for (zero by default) and is raised only by
+    routes actually found.
+    """
+    floor = float(search_kwargs.pop("min_distance_m", 0.0))
+    pool: list[DistanceRoute] = []
+    for seed in seeds:
+        budget = budget_factory() if budget_factory is not None else DistanceBudget()
+        found, budget = search_distance_from_edge(
+            graph,
+            profiles,
+            seed,
+            budget=budget,
+            keep_best=None,
+            min_distance_m=floor,
+            **search_kwargs,
+        )
+        if on_seed is not None:
+            on_seed(seed, budget)
+        if not found:
+            continue
+        pool.extend(found)
+        ranking = distinct_longest(pool, limit)
+        if len(ranking) >= limit:
+            floor = max(floor, ranking[-1].distance_m)
+            # Anything under the new floor can no longer reach the ranking.
+            pool = [route for route in pool if route.distance_m >= floor]
+    return distinct_longest(pool, limit)
 
 
 def start_offsets(profile: EdgeProfile, step_m: float) -> tuple[float, ...]:

@@ -31,8 +31,8 @@ from coastdown.distance_search import (
     DistanceBudget,
     DistanceRoute,
     brute_force_distance_routes,
-    distinct_longest,
     evaluate_distance_route,
+    global_longest,
     search_distance_from_edge,
     start_offsets,
     trim_edge_profile,
@@ -77,29 +77,68 @@ def build_profiles(
 def run_search(
     graph: RoutableGraph,
     profiles: dict[str, EdgeProfile],
+    limit: int = TOP_N,
     **kwargs,
 ) -> tuple[list[DistanceRoute], dict[str, int]]:
-    routes: list[DistanceRoute] = []
+    """The exact regional ranking.
+
+    The previous version kept the two best routes of each seed and ranked the
+    union. That is not the global ranking: a seed with several long branches
+    owns several of the leading places and a cap of two discards the rest,
+    silently. :func:`global_longest` keeps a running floor instead, which
+    reaches the same answer as ranking every route at once.
+    """
+    seeds = [edge_id for edge_id, item in profiles.items() if item.simulable]
     expansions = 0
     exhausted = 0
-    seeds = [edge_id for edge_id, item in profiles.items() if item.simulable]
-    for seed in seeds:
-        found, budget = search_distance_from_edge(
-            graph,
-            profiles,
-            seed,
-            budget=DistanceBudget(max_expansions=MAX_EXPANSIONS),
-            keep_best=2,
-            **kwargs,
-        )
-        routes.extend(found)
+
+    def account(_seed: str, budget: DistanceBudget) -> None:
+        nonlocal expansions, exhausted
         expansions += budget.expansions
         exhausted += int(budget.exhausted)
+
+    routes = global_longest(
+        graph,
+        profiles,
+        seeds,
+        limit,
+        budget_factory=lambda: DistanceBudget(max_expansions=MAX_EXPANSIONS),
+        on_seed=account,
+        **kwargs,
+    )
     return routes, {
         "seeds": len(seeds),
         "expansions": expansions,
         "seeds_with_exhausted_budget": exhausted,
     }
+
+
+def best_route_per_seed(
+    graph: RoutableGraph,
+    profiles: dict[str, EdgeProfile],
+    **kwargs,
+) -> list[DistanceRoute]:
+    """One route per seed: the longest that seed can reach.
+
+    A separate pass, because the ranking pass discards everything under its
+    running floor and so cannot describe the region. Kept explicitly rather
+    than reconstructed from the ranking, which would only ever describe twenty
+    routes.
+    """
+    routes: list[DistanceRoute] = []
+    for seed, item in profiles.items():
+        if not item.simulable:
+            continue
+        found, _ = search_distance_from_edge(
+            graph,
+            profiles,
+            seed,
+            budget=DistanceBudget(max_expansions=MAX_EXPANSIONS),
+            keep_best=1,
+            **kwargs,
+        )
+        routes.extend(found)
+    return routes
 
 
 def route_row(graph: RoutableGraph, route: DistanceRoute, rank: int) -> dict[str, object]:
@@ -371,12 +410,17 @@ def main() -> None:
         profiles = build_profiles(graph, store, PRODUCTION_METHOD)
         graphs[scenario] = graph
         profile_sets[scenario] = profiles
-        routes, stats = run_search(graph, profiles)
-        top = distinct_longest(routes, TOP_N)
+        # `top` is already the exact ranking, not a pool waiting to be filtered.
+        top, stats = run_search(graph, profiles)
         tops[scenario] = top
+        # The ranking is twenty routes, far too few to describe how the region
+        # behaves. The distribution below is over the best route of every seed,
+        # which is a defined population rather than an arbitrary pool.
+        seed_bests = best_route_per_seed(graph, profiles)
         print(
             f"[{scenario}] {stats['seeds']} seeds, {stats['expansions']} expansions, "
-            f"{len(routes)} routes, {stats['seeds_with_exhausted_budget']} budget-limited, "
+            f"{len(seed_bests)} seeds yielding a route, "
+            f"{stats['seeds_with_exhausted_budget']} budget-limited, "
             f"best {top[0].distance_m:.0f} m"
         )
         for rank, route in enumerate(top, start=1):
@@ -388,10 +432,12 @@ def main() -> None:
             "profiled_edges": len(profiles),
             "simulable_edges": sum(1 for item in profiles.values() if item.simulable),
             "search": stats,
-            "routes_found": len(routes),
+            "seeds_yielding_a_route": len(seed_bests),
             "distinct_ranked": len(top),
-            "stop_reasons": dict(Counter(route.stop_reason for route in routes).most_common()),
-            "routes_with_a_restart": sum(1 for route in routes if route.restart_count),
+            "stop_reasons_of_each_seed_best": dict(
+                Counter(route.stop_reason for route in seed_bests).most_common()
+            ),
+            "seed_bests_with_a_restart": sum(1 for route in seed_bests if route.restart_count),
         }
 
     write_csv(output / "candidate_routes.csv", all_rows)

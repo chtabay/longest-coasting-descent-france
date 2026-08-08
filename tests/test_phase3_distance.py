@@ -46,6 +46,7 @@ from coastdown.distance_search import (
     edge_bend_limits,
     evaluate_distance_route,
     exhaustive_routes,
+    global_longest,
     search_distance_from_edge,
     trim_edge_profile,
 )
@@ -514,6 +515,113 @@ def test_the_engine_matches_the_unpruned_oracle(grades) -> None:
     assert engine[0].distance_m == pytest.approx(best_reference.distance_m, abs=1e-9)
     assert engine[0].edge_ids == best_reference.edge_ids
     assert brute_force_distance_routes(graph, profiles, seed), "the old name still resolves"
+
+
+def fan_graph(branches: int, *, spread: float = 0.0004):
+    """A trunk that fans into ``branches`` descents of decreasing length.
+
+    One seed owns the whole fan, so every route in the ranking comes from it.
+    """
+    trunk = way(1, straight(0, 200), ASPHALT, last_node=21)
+    ways = [trunk]
+    grades = {1: -0.05}
+    for index in range(branches):
+        leg = way(
+            10 + index,
+            straight(200, 900 - 60 * index, lat=45.05 + spread * index),
+            ASPHALT,
+            first_node=21,
+        )
+        leg["geometry"][0] = trunk["geometry"][-1]
+        ways.append(leg)
+        grades[10 + index] = -0.05
+    graph = build_graph(osm(*ways), "paved_reference")
+    return graph, profiles_for(graph, grades)
+
+
+def test_a_per_seed_cap_cannot_produce_the_global_ranking() -> None:
+    """One seed may legitimately own several leading places.
+
+    Ranking the union of each seed's ``keep_best`` routes is the natural way to
+    assemble a Top N and it is wrong: the fan below has a single simulable seed
+    whose six branches are all genuine routes of different lengths, so a cap of
+    two hides four of them. The failure is silent — the shortened ranking looks
+    exactly like a complete one.
+    """
+    graph, profiles = fan_graph(6)
+    seeds = sorted(edge_id for edge_id, item in profiles.items() if item.simulable)
+    seed = forward_edge(graph, 1)
+
+    capped, _ = search_distance_from_edge(
+        graph, profiles, seed, budget=DistanceBudget(max_expansions=10**6), keep_best=2
+    )
+    assert len(capped) == 2, "the cap is what a per-seed assembly would have returned"
+
+    ranking = global_longest(
+        graph,
+        profiles,
+        seeds,
+        6,
+        budget_factory=lambda: DistanceBudget(max_expansions=10**6),
+    )
+    assert len(ranking) == 6, "all six branches are distinct routes"
+    assert [round(route.distance_m, 6) for route in ranking] == sorted(
+        (round(route.distance_m, 6) for route in ranking), reverse=True
+    )
+
+
+def test_the_global_ranking_equals_ranking_every_route_at_once() -> None:
+    """The running floor must not change the answer, only the memory it needs.
+
+    Checked against the ranking of the complete route set, which is the
+    definition, on a graph with several seeds so the floor actually rises
+    between them.
+    """
+    graph, profiles = fan_graph(5)
+    seeds = sorted(edge_id for edge_id, item in profiles.items() if item.simulable)
+
+    everything: list = []
+    for seed in seeds:
+        found, budget = search_distance_from_edge(
+            graph,
+            profiles,
+            seed,
+            budget=DistanceBudget(max_expansions=10**6),
+            keep_best=None,
+        )
+        assert not budget.exhausted
+        everything.extend(found)
+
+    for limit in (1, 2, 3, 5, 8):
+        reference = distinct_longest(everything, limit)
+        ranking = global_longest(
+            graph,
+            profiles,
+            seeds,
+            limit,
+            budget_factory=lambda: DistanceBudget(max_expansions=10**6),
+        )
+        assert [route.edge_ids for route in ranking] == [route.edge_ids for route in reference]
+        assert [route.distance_m for route in ranking] == [
+            pytest.approx(route.distance_m) for route in reference
+        ]
+
+
+def test_the_running_floor_never_hides_a_route_that_belongs_in_the_ranking() -> None:
+    """Seed order must not matter: the floor is a consequence, not an input."""
+    graph, profiles = fan_graph(5)
+    seeds = sorted(edge_id for edge_id, item in profiles.items() if item.simulable)
+    forwards = global_longest(
+        graph, profiles, seeds, 4, budget_factory=lambda: DistanceBudget(max_expansions=10**6)
+    )
+    backwards = global_longest(
+        graph,
+        profiles,
+        list(reversed(seeds)),
+        4,
+        budget_factory=lambda: DistanceBudget(max_expansions=10**6),
+    )
+    assert [route.edge_ids for route in forwards] == [route.edge_ids for route in backwards]
 
 
 def test_the_oracle_refuses_to_truncate_rather_than_report_a_smaller_optimum() -> None:
