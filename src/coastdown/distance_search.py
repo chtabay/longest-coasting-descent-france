@@ -295,6 +295,56 @@ class DistanceRoute:
     braking_model: str
 
 
+def simulate_path(
+    graph: RoutableGraph,
+    profiles: dict[str, EdgeProfile],
+    edge_ids: Sequence[str],
+    *,
+    start_offset_m: float = 0.0,
+    bicycle: BicycleSystem | None = None,
+    environment: Environment | None = None,
+    initial_speed_m_s: float = INITIAL_SPEED_M_S,
+    time_step_s: float = 0.05,
+    lateral_scenario: str = DEFAULT_LATERAL_SCENARIO,
+    braking: str = "ideal",
+    brake_deceleration_m_s2: float = DEFAULT_BRAKE_DECELERATION_M_S2,
+    zero_speed_epsilon_m_s: float = DEFAULT_ZERO_SPEED_EPSILON_M_S,
+) -> tuple[list[EdgeProfile], CoastingRun]:
+    """Run one whole path under the authoritative joined-geometry envelope.
+
+    **This is the single definition of what a path does.**  The search, the
+    exhaustive oracle and the published evaluation all call it, so no decision
+    can be taken on a quantity that differs from the one reported.
+
+    That was not true before.  The walk chained per-edge simulations under
+    ``edge_bend_limits``, which is blind within one chord of every junction,
+    while the ranking published a run under ``route_bend_limits`` measured
+    across the joined geometry.  The two disagree, so a branch could be dropped
+    on a distance the study never publishes: on one seed the walk kept a route
+    worth 159.3 m while a full enumeration found 1020.9 m.  Re-simulating the
+    whole path at every expansion is quadratic in path length and much slower;
+    correctness comes first, and a branch may be kept needlessly but must never
+    be discarded wrongly.
+    """
+    chain = [profiles[edge_id] for edge_id in edge_ids]
+    if start_offset_m > 0:
+        chain[0] = trim_edge_profile(chain[0], start_offset_m)
+    profile, _ = concatenate_route(chain, lateral_scenario)
+    limits = route_bend_limits(graph, edge_ids, chain, lateral_scenario, start_offset_m)
+    run = simulate_coasting(
+        profile,
+        bicycle or BicycleSystem(),
+        environment or Environment(),
+        initial_speed_m_s=initial_speed_m_s,
+        time_step_s=time_step_s,
+        bend_limits=limits,
+        braking=braking,
+        brake_deceleration_m_s2=brake_deceleration_m_s2,
+        zero_speed_epsilon_m_s=zero_speed_epsilon_m_s,
+    )
+    return chain, run
+
+
 def evaluate_distance_route(
     graph: RoutableGraph,
     profiles: dict[str, EdgeProfile],
@@ -313,20 +363,16 @@ def evaluate_distance_route(
     termination: str = "definitive_stop",
 ) -> DistanceRoute:
     """Simulate a finished route once, end to end, for its authoritative metrics."""
-    chain = [profiles[edge_id] for edge_id in edge_ids]
-    if start_offset_m > 0:
-        chain[0] = trim_edge_profile(chain[0], start_offset_m)
-    profile, _ = concatenate_route(chain, lateral_scenario)
-    # The authoritative evaluation measures bends across the joined route, so a
-    # turn spanning a junction is not lost between two edges.
-    limits = route_bend_limits(graph, edge_ids, chain, lateral_scenario, start_offset_m)
-    run = simulate_coasting(
-        profile,
-        bicycle or BicycleSystem(),
-        environment or Environment(),
+    chain, run = simulate_path(
+        graph,
+        profiles,
+        edge_ids,
+        start_offset_m=start_offset_m,
+        bicycle=bicycle,
+        environment=environment,
         initial_speed_m_s=initial_speed_m_s,
         time_step_s=time_step_s,
-        bend_limits=limits,
+        lateral_scenario=lateral_scenario,
         braking=braking,
         brake_deceleration_m_s2=brake_deceleration_m_s2,
         zero_speed_epsilon_m_s=zero_speed_epsilon_m_s,
@@ -479,13 +525,13 @@ def search_distance_from_edge(
     if seed is None or not seed.simulable:
         return [], limits
 
-    seed_profile = trim_edge_profile(seed, start_offset_m) if start_offset_m > 0 else seed
-    local = dict(profiles)
-    local[seed_edge_id] = seed_profile
+    if start_offset_m > 0:
+        # Fail early rather than silently walking an untrimmed seed.
+        trim_edge_profile(seed, start_offset_m)
 
     finished: list[tuple[float, str, list[str]]] = []
-    stack: list[tuple[list[str], frozenset[tuple[int, int]], float, float]] = [
-        ([seed_edge_id], frozenset({_piece(graph, seed_edge_id)}), initial_speed_m_s, 0.0)
+    stack: list[tuple[list[str], frozenset[tuple[int, int]]]] = [
+        ([seed_edge_id], frozenset({_piece(graph, seed_edge_id)}))
     ]
 
     def finish(path: list[str], distance: float, termination: str) -> None:
@@ -498,38 +544,43 @@ def search_distance_from_edge(
         if limits.expansions >= limits.max_expansions:
             limits.exhausted = True
             break
-        path, used, entry_speed, covered = stack.pop()
+        path, used = stack.pop()
         limits.expansions += 1
-        run = _run_edge(
-            local[path[-1]],
-            entry_speed,
-            machine,
-            air,
-            lateral_scenario,
-            braking,
-            zero_speed_epsilon_m_s,
+        # The whole path is re-simulated under the authoritative envelope, so
+        # the distance this branch is judged on is exactly the distance that
+        # would be published for it.
+        _, run = simulate_path(
+            graph,
+            profiles,
+            path,
+            start_offset_m=start_offset_m,
+            bicycle=machine,
+            environment=air,
+            initial_speed_m_s=initial_speed_m_s,
+            lateral_scenario=lateral_scenario,
+            braking=braking,
+            zero_speed_epsilon_m_s=zero_speed_epsilon_m_s,
         )
-        total = covered + run.travelled_distance_m
+        total = run.travelled_distance_m
         if run.stop_reason != "route_end":
             finish(path, total, run.stop_reason)
             continue
         if len(path) >= limits.max_edges_per_route:
             finish(path, total, "route_length_cap")
             continue
-        exit_speed = run.speed_m_s[-1]
         continuations = [
             candidate
             for candidate in graph.continuations(path[-1])
             if _piece(graph, candidate) not in used
-            and local.get(candidate) is not None
-            and local[candidate].simulable
+            and profiles.get(candidate) is not None
+            and profiles[candidate].simulable
         ]
         if not continuations:
             blocked = graph.continuations(path[-1])
             finish(path, total, "no_admissible_continuation" if blocked else "network_end")
             continue
         for candidate in continuations:
-            stack.append(([*path, candidate], used | {_piece(graph, candidate)}, exit_speed, total))
+            stack.append(([*path, candidate], used | {_piece(graph, candidate)}))
 
     finished.sort(key=lambda item: -item[0])
     best = [
@@ -553,7 +604,7 @@ def search_distance_from_edge(
     return best, limits
 
 
-def brute_force_distance_routes(
+def exhaustive_routes(
     graph: RoutableGraph,
     profiles: dict[str, EdgeProfile],
     seed_edge_id: str,
@@ -561,39 +612,66 @@ def brute_force_distance_routes(
     initial_speed_m_s: float = INITIAL_SPEED_M_S,
     lateral_scenario: str = DEFAULT_LATERAL_SCENARIO,
     braking: str = "ideal",
+    max_paths: int | None = None,
 ) -> list[DistanceRoute]:
-    """Every admissible route from a seed, with no budget and no pruning.
+    """Every admissible route from a seed, enumerated with no pruning at all.
 
-    Deliberately naive, and deliberately re-simulating the whole route at each
-    leaf instead of accumulating: it shares none of the engine's shortcuts, so
-    agreement between the two is evidence rather than tautology.
+    The oracle the optimised engine is checked against.  It applies **no**
+    budget, **no** keep-best truncation, **no** dominance and **no** ordering
+    heuristic: it extends a path for as long as the graph admits a continuation
+    and the bicycle physically reaches the end of what it has, and it evaluates
+    every path it produces.
+
+    It shares the *evaluation* with the engine, which is unavoidable and
+    intended — that evaluation is the definition of the objective — but it
+    shares no pruning key, because it prunes nothing.  Agreement between the two
+    is therefore evidence about the engine's search, not a tautology.
+
+    ``max_paths`` is a safety stop for accidental use on a large subgraph. It
+    raises rather than truncating: a silently truncated oracle would be worse
+    than no oracle.
     """
+    seed = profiles.get(seed_edge_id)
+    if seed is None or not seed.simulable:
+        return []
     machine = BicycleSystem()
     air = Environment()
     results: list[DistanceRoute] = []
 
-    def walk(path: list[str], used: frozenset[tuple[int, int]], entry_speed: float) -> None:
-        run = _run_edge(
-            profiles[path[-1]],
-            entry_speed,
-            machine,
-            air,
-            lateral_scenario,
-            braking,
-            DEFAULT_ZERO_SPEED_EPSILON_M_S,
+    def evaluate(path: list[str], termination: str) -> None:
+        if max_paths is not None and len(results) >= max_paths:
+            raise RuntimeError(
+                f"exhaustive_routes exceeded {max_paths} paths from {seed_edge_id}; "
+                "the subgraph is too large for an unpruned oracle"
+            )
+        results.append(
+            evaluate_distance_route(
+                graph,
+                profiles,
+                path,
+                seed_edge_id=seed_edge_id,
+                bicycle=machine,
+                environment=air,
+                initial_speed_m_s=initial_speed_m_s,
+                lateral_scenario=lateral_scenario,
+                braking=braking,
+                termination=termination,
+            )
+        )
+
+    def walk(path: list[str], used: frozenset[tuple[int, int]]) -> None:
+        _, run = simulate_path(
+            graph,
+            profiles,
+            path,
+            bicycle=machine,
+            environment=air,
+            initial_speed_m_s=initial_speed_m_s,
+            lateral_scenario=lateral_scenario,
+            braking=braking,
         )
         if run.stop_reason != "route_end":
-            results.append(
-                evaluate_distance_route(
-                    graph,
-                    profiles,
-                    path,
-                    seed_edge_id=seed_edge_id,
-                    lateral_scenario=lateral_scenario,
-                    braking=braking,
-                    termination=run.stop_reason,
-                )
-            )
+            evaluate(path, run.stop_reason)
             return
         nexts = [
             candidate
@@ -603,26 +681,38 @@ def brute_force_distance_routes(
             and profiles[candidate].simulable
         ]
         if not nexts:
-            results.append(
-                evaluate_distance_route(
-                    graph,
-                    profiles,
-                    path,
-                    seed_edge_id=seed_edge_id,
-                    lateral_scenario=lateral_scenario,
-                    braking=braking,
-                    termination="no_admissible_continuation",
-                )
-            )
+            blocked = graph.continuations(path[-1])
+            evaluate(path, "no_admissible_continuation" if blocked else "network_end")
             return
+        # A path that can continue is still a route in its own right: the rider
+        # may simply have reached the end of the road they were on. Recording it
+        # as well as its extensions is what makes the enumeration complete.
+        evaluate(path, "prefix")
         for candidate in nexts:
-            walk([*path, candidate], used | {_piece(graph, candidate)}, run.speed_m_s[-1])
+            walk([*path, candidate], used | {_piece(graph, candidate)})
 
-    seed = profiles.get(seed_edge_id)
-    if seed is None or not seed.simulable:
-        return []
-    walk([seed_edge_id], frozenset({_piece(graph, seed_edge_id)}), initial_speed_m_s)
+    walk([seed_edge_id], frozenset({_piece(graph, seed_edge_id)}))
     return results
+
+
+def brute_force_distance_routes(
+    graph: RoutableGraph,
+    profiles: dict[str, EdgeProfile],
+    seed_edge_id: str,
+    *,
+    initial_speed_m_s: float = INITIAL_SPEED_M_S,
+    lateral_scenario: str = DEFAULT_LATERAL_SCENARIO,
+    braking: str = "ideal",
+) -> list[DistanceRoute]:
+    """Backwards-compatible name for :func:`exhaustive_routes`."""
+    return exhaustive_routes(
+        graph,
+        profiles,
+        seed_edge_id,
+        initial_speed_m_s=initial_speed_m_s,
+        lateral_scenario=lateral_scenario,
+        braking=braking,
+    )
 
 
 def distinct_longest(routes: Sequence[DistanceRoute], limit: int) -> list[DistanceRoute]:

@@ -45,6 +45,7 @@ from coastdown.distance_search import (
     distinct_longest,
     edge_bend_limits,
     evaluate_distance_route,
+    exhaustive_routes,
     search_distance_from_edge,
     trim_edge_profile,
 )
@@ -183,6 +184,14 @@ def test_a_closed_cycle_always_returns_less_energy_than_it_received() -> None:
     Most loops are not lappable at all — a 300 m lap at 4 % stops the bicycle on
     its own climb — so the test asserts the invariant in both forms: strict
     energy loss when the lap completes, and a definitive stop when it does not.
+
+    **This holds for the reference scenario, which has no wind.**  The argument
+    rests on gravity netting to zero over a closed lap while every other term
+    only removes energy.  An environment able to *supply* energy breaks it:
+    under a non-zero along-route wind the aerodynamic term is a source over part
+    of the lap, and a closed cycle may return more than it received.  A wind
+    scenario must re-establish its own bound before route reuse is allowed under
+    it; this invariant does not transfer to it.
     """
     for grade, length, speed in ((0.04, 300.0, 12.0), (0.02, 25.0, 14.0), (0.01, 100.0, 10.0)):
         loop = RoadProfile([length, length], [-grade, grade], [CRR, CRR])
@@ -203,7 +212,8 @@ def test_repeated_laps_of_a_closed_cycle_decay_monotonically() -> None:
 
     This is the property a search may rely on once the once-per-piece rule is
     lifted: repeating a loop is self-limiting, so it cannot manufacture
-    distance.
+    distance.  Like the invariant above it assumes the windless reference
+    scenario; an environment that can supply energy does not guarantee decay.
     """
     lap = ([25.0, 25.0], [-0.02, 0.02], [CRR, CRR])
     speed = 14.0
@@ -477,7 +487,7 @@ def test_a_forbidden_road_is_still_never_entered() -> None:
         {1: -0.01, 2: 0.02, 3: -0.007, 4: -0.004, 5: 0.0},
     ],
 )
-def test_the_distance_engine_matches_brute_force(grades) -> None:
+def test_the_engine_matches_the_unpruned_oracle(grades) -> None:
     trunk = way(1, straight(0, 300), ASPHALT, last_node=21)
     left = way(2, straight(300, 400), ASPHALT, first_node=21, last_node=46)
     right = way(3, straight(300, 500, lat=45.05 + 0.0004), ASPHALT, first_node=21, last_node=80)
@@ -493,12 +503,37 @@ def test_the_distance_engine_matches_brute_force(grades) -> None:
     engine, budget = search_distance_from_edge(
         graph, profiles, seed, budget=DistanceBudget(max_expansions=10**6)
     )
-    reference = brute_force_distance_routes(graph, profiles, seed)
+    # The oracle applies no budget, no keep-best, no dominance and no ordering.
+    # It shares the evaluation -- that evaluation is the definition of the
+    # objective -- but it shares no pruning key, because it prunes nothing.
+    # Agreement is therefore evidence about the search, not a tautology.
+    reference = exhaustive_routes(graph, profiles, seed, max_paths=5000)
     assert not budget.exhausted
     assert engine and reference
     best_reference = max(reference, key=lambda item: item.distance_m)
     assert engine[0].distance_m == pytest.approx(best_reference.distance_m, abs=1e-9)
     assert engine[0].edge_ids == best_reference.edge_ids
+    assert brute_force_distance_routes(graph, profiles, seed), "the old name still resolves"
+
+
+def test_the_oracle_refuses_to_truncate_rather_than_report_a_smaller_optimum() -> None:
+    """A silently truncated oracle would be worse than no oracle at all.
+
+    Truncation would make the oracle report an optimum no larger than the true
+    one, so an engine defect could hide behind a short enumeration. The cap is
+    a guard against accidental use on a large subgraph, never a sampling knob.
+    """
+    trunk = way(1, straight(0, 300), ASPHALT, last_node=21)
+    left = way(2, straight(300, 400), ASPHALT, first_node=21)
+    right = way(3, straight(300, 500, lat=45.05 + 0.0004), ASPHALT, first_node=21)
+    left["geometry"][0] = right["geometry"][0] = trunk["geometry"][-1]
+    graph = build_graph(osm(trunk, left, right), "paved_reference")
+    profiles = profiles_for(graph, {1: -0.03, 2: -0.02, 3: -0.02})
+    seed = forward_edge(graph, 1)
+
+    assert len(exhaustive_routes(graph, profiles, seed)) > 1
+    with pytest.raises(RuntimeError, match="exceeded 1 paths"):
+        exhaustive_routes(graph, profiles, seed, max_paths=1)
 
 
 # --------------------------------------------------------------------------
