@@ -190,7 +190,7 @@ median change is near zero, so the failure is concentrated, not diffuse.
 
 - **40 of 40** real subgraphs give the identical optimum, distance and path, against a brute-force
   enumeration that shares none of the engine's shortcuts.
-- 3 cases in `tests/test_phase3_distance.py`: a flat stopping on resistance alone
+- 35 cases in `tests/test_phase3_distance.py`: a flat stopping on resistance alone
   inside its exact energy bracket; long gentle versus short steep compared at equal drop; a
   descent then a long flat; a small clearable rise; a rise consuming all the energy; a zero at a
   boundary that restarts and one that does not; a mid-segment zero that is always definitive; a
