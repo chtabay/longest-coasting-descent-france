@@ -552,6 +552,7 @@ ranked routes does.
   `route_bend_limits` (dead for every published row, all of which carry `start_offset_m = 0`);
   and the un-rebased bends in `trim_edge_profile` (latent, no published number moves — fixed
   regardless).
+
 ### 9.3 Standing limitations of the model and the data
 
 - Seven of the paved top 20 and ten of the VTC top 20 are network-limited; their corridors are
@@ -561,6 +562,53 @@ ranked routes does.
 - Wind is zero and air density fixed; neither is a scenario yet.
 - Structures still carry no roadway elevation and remain non-simulable.
 - 557.6 km of the network stays in `review` for want of an explicit bicycle tag.
+
+## 10. Where the search goes next
+
+### The depth-first walk is correct and it does not scale
+
+Everything in this report rests on a search that re-simulates the whole path at every expansion.
+That is what made it correct — it is the only way the branch being judged and the route being
+published carry the same number — and it is quadratic in path length. Measured on this region:
+
+| | seeds | expansions | runtime |
+|---|---:|---:|---:|
+| `paved_reference`, once per way piece | 2 383 | 16 877 | 423 s |
+| `paved_reference`, repetition allowed | 2 383 | 25 625 | 608 s |
+| `reference_vtc`, once per way piece | 3 851 | 155 649 | 3 941 s |
+
+A single 61-edge VTC route costs 55–93 s to search from its seed. The Oisans extract is 371.6 km of
+paved road; France is three orders of magnitude larger, and the cost is worse than linear in it
+because long routes are exactly what the objective selects for.
+
+### What the state actually needs to be
+
+The walk carries `(path, set of used way pieces)`. The set is there only to enforce the trip rule,
+and it is what makes the state exponential: two arrivals at the same place with the same energy are
+different states if they got there differently, so nothing can ever be merged.
+
+Dropping the rule collapses the state to `(position, energy, previous edge)` — position and energy
+because that is all the physics needs, previous edge because turn restrictions and the no-u-turn
+rule look one step back. That state is dominated in the ordinary sense: at the same position and
+previous edge, more energy is never worse. Dominance turns the enumeration into a value function.
+
+**This report does not build that engine.** It records the measurements that decide whether the
+transition is justified, and on the evidence here it is: the trip rule costs almost nothing in
+answer (1 of 64 paved seeds, 3 of 34 VTC seeds) while being the sole reason the state cannot be
+compressed. Removing it is not primarily a change of question — it is what makes a national search
+tractable, and the question it changes has been measured rather than assumed.
+
+The transition still has to handle, correctly and not by hand-waving: dissipative cycles, so the
+value iteration terminates; the transitions themselves; manoeuvre restrictions; the lateral
+envelope, which couples adjacent edges and so is not a property of a single edge; and energy
+dominance under all of the above.
+
+### One caveat that outranks the engine
+
+The VTC record is bounded by an 8.3 m underpass with no roadway elevation, not by physics. Ten of
+the twenty VTC routes and seven of the twenty paved ones end at the edge of the admitted graph.
+**A faster engine will not improve those numbers; a source of structure elevation will.** Whichever
+engine comes next, 10.87 km of removed road in one small region is the larger error term.
 
 ---
 
