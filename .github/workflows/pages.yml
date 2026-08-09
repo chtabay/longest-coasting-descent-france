@@ -1,0 +1,61 @@
+name: Pages
+
+# Publishes site/ — the audit page for the engine's results.
+#
+# The page exists to be checked against, so publishing a stale or inconsistent
+# one would be worse than publishing nothing. The deploy job therefore runs the
+# site contract tests first: they assert that site/data matches
+# outputs/phase3/variants.json exactly, that every figure the page references
+# ships inside site/, and that no result is written into the markup. A failure
+# there stops the deployment instead of putting a wrong number on a public URL.
+#
+# Only main deploys. The github-pages environment permits that branch alone,
+# which is the default and is deliberately left alone: a work-in-progress
+# branch should not be able to publish over a public page.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "outputs/phase3/variants.json"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and never cancel one in flight: a half-replaced
+# site is a worse outcome than a slightly late one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: python -m pip install -e '.[dev]'
+
+      - name: Refuse to publish a page that disagrees with the engine outputs
+        run: pytest tests/test_site_page.py -q
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
