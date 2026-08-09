@@ -563,6 +563,91 @@ ranked routes does.
 - Structures still carry no roadway elevation and remain non-simulable.
 - 557.6 km of the network stays in `review` for want of an explicit bicycle tag.
 
+## 9bis. Every distance now carries why it ended
+
+A distance without the reason the route ended is not a result. Only a definitive physical stop
+measures the coasting distance; every other ending is a **lower bound**, and printing the two alike
+is precisely what let 6 291.2 m read as a regional maximum. Four statuses, exhaustive and mutually
+exclusive (`coastdown/termination.py`):
+
+| status | meaning | how to read the distance |
+|---|---|---|
+| `physical_stop` | speed reached zero and nothing could restart the bicycle | **the coasting distance** |
+| `model_gap` | the road continues and the model does not follow it | lower bound |
+| `network_boundary` | nothing in the extract continues past that point | lower bound |
+| `budget_limit` | the search ran out of allowance, not of graph | lower bound; nothing about the road is being reported |
+
+`model_gap` covers two cases: no admitted edge at the junction is simulable, or every continuation
+was refused by the trip rule — a coast ended by a definition has not measured how far the bicycle
+rolls either. The `model_gap` / `network_boundary` distinction **cannot be drawn from the graph**,
+because the graph is exactly what dropped the continuation; it is drawn by going back to the raw
+extract and asking whether a highway way still runs through that node.
+
+Applied to the published rankings:
+
+| | rank 1 | top 20 |
+|---|---|---|
+| `paved_reference` | **4 494.8 m — PHYSICAL STOP** | 13 physical stops, 7 model gaps |
+| `reference_vtc` | **≥ 6 291.2 m — MODEL GAP** | 10 physical stops, 10 model gaps |
+
+The VTC leader's status names its cause: OSM way `1453146526` at node `13326635869`. **Neither
+scenario has a single `network_boundary` route.** Every truncation in this region is something the
+pipeline removed, not the edge of the download — which is what makes §9.1's structure reservation
+the dominant one and not a footnote.
+
+## 9ter. Phase A verdict
+
+Two conclusions, deliberately separated. They point in opposite directions and merging them would
+let either one flatter the other.
+
+### A. Algorithmic validation — the regional engine can now serve as a reference
+
+| criterion | evidence | verdict |
+|---|---|---|
+| Truly unpruned oracle | `exhaustive_routes`: no budget, no keep-best, no dominance, no ordering; raises rather than truncating | ✅ |
+| Path **and** distance equality | 126 of 126 real Oisans seeds, identical path, worst disagreement **0.000000000 m** | ✅ |
+| Equality under the harder semantics | 93 oracle checks with `allow_cycles=True`, 0 disagreements | ✅ |
+| Exact global Top K | running floor, proved equal to ranking every route at once and invariant under seed order | ✅ |
+| No unresolved seed | 0 of 2 383 paved and 0 of 3 851 VTC; the five that once ran out of allowance are closed | ✅ |
+| In-edge starts | remeasured at 0.0 % gain, with a synthetic case where `offset > 0` strictly wins so the optimiser cannot specialise on the Oisans answer | ✅ |
+| Cycles | 7 synthetic configurations, finiteness across five lap grades, engine = oracle where the exit timing has no obvious answer | ✅ |
+| Braking | never chosen, only the envelope's minimum; the two representations differ by ≤ 0.13 % and are structurally equivalent | ✅ |
+| Energy audit | budget reconstructed from the trajectory, independent of the integrator: residual **+0.004 %** (paved) and **+0.000 %** (VTC) | ✅ |
+| Software tests | 185 tests, network refused for the whole session; `ruff check`, `ruff format --check`, `git diff --check` clean | ✅ |
+
+**Verdict: yes.** The regional engine returns the optimum of an enumeration that shares none of its
+pruning, on real data, in path as well as distance, under both trip definitions. The two defects
+that invalidated the previous ranking are fixed and the failure mode that hid one of them — a
+validation whose reference shared the flawed key — is gone. Nothing in the current results rests on
+a search decision that has not been checked against something that prunes nothing.
+
+This is a statement about the **search**, and about this region. It is not a statement about the
+national problem, where §10 explains why this engine is the wrong shape.
+
+### B. Physical coverage of the graph — not validated, and the dominant reservation
+
+The engine is correct about the graph it is given. The graph is not the road.
+
+- 277 highway ways in the extract carry a structure tag or a non-zero layer; **275 produce no edge
+  at all**, removing **10.87 km** of road.
+- **17 of the 40 ranked routes** (7 paved, 10 VTC) end at the edge of the admitted graph rather
+  than at a physical stop.
+- **Not one** ends at the edge of the download. Every truncation in this region is something the
+  pipeline removed.
+- The `reference_vtc` leader is `>= 6 291.2 m — model_gap`: it leaves the graph at **56.8 km/h**
+  with 11.4 kJ in hand, severed by an **8.3 m** `layer=-1` underpass on the D 211.
+
+An eight-metre gap truncates the best corridor the study has found. That is not a rounding error
+and it will not be improved by a faster or more exhaustive search. **The Phase 1B rule is right and
+stays unchanged**: terrain elevation on a structure invents a grade, and on a distance objective an
+invented descent is exactly what the optimiser would select for. What has to change is the second
+half of the behaviour — deleting the way — and that is Phase A2
+(`docs/11_phase_a2_structure_continuity.md`), to be opened deliberately rather than by relaxing a
+rule here.
+
+**Verdict: the algorithmic result is sound and the physical coverage is not.** Phase A closes on
+the first and hands the second to A2.
+
 ## 10. Where the search goes next
 
 ### The depth-first walk is correct and it does not scale
