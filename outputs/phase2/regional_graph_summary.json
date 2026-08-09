@@ -1,0 +1,153 @@
+{
+  "braking": "not permitted in the reference event",
+  "claim": "experimental regional prototype; no national or regional record is claimed",
+  "cycle_rule": "each way piece at most once per route, in at most one direction",
+  "elevation_methods_compared": [
+    "raw_10m",
+    "raw_25m",
+    "adaptive_geometry",
+    "robust_median_local",
+    "net_dz_constrained"
+  ],
+  "initial_speed_km_h": 15.0,
+  "lateral_limits_m_s2": {
+    "committed": 4.903,
+    "conservative": 1.961,
+    "nominal": 3.432
+  },
+  "production_elevation_method": "raw_25m",
+  "rolling_resistance_scenarios": [
+    {
+      "basis": "Smooth hard surface with a well-inflated touring/hybrid tyre; the published range for this configuration.",
+      "central": 0.006,
+      "high": 0.008,
+      "low": 0.0045,
+      "surface_class": "asphalt_good",
+      "uncertainty": "\u00b130%, driven by tyre choice and inflation rather than by the surface."
+    },
+    {
+      "basis": "Cracked, patched or coarse-chipping asphalt, and the class used when a classified road carries no surface tag at all.",
+      "central": 0.01,
+      "high": 0.015,
+      "low": 0.007,
+      "surface_class": "asphalt_degraded",
+      "uncertainty": "\u00b150%. Also absorbs the risk of the missing-tag assumption being wrong, so it is deliberately pessimistic."
+    },
+    {
+      "basis": "Bound, compacted or fine gravel that stays firm under a 90 kg system.",
+      "central": 0.018,
+      "high": 0.028,
+      "low": 0.012,
+      "surface_class": "stabilised_gravel",
+      "uncertainty": "Roughly a factor 2 either way; strongly dependent on recent weather."
+    },
+    {
+      "basis": "Firm unsealed track, OSM tracktype grade2 or an equivalent compacted way.",
+      "central": 0.028,
+      "high": 0.045,
+      "low": 0.018,
+      "surface_class": "compact_track",
+      "uncertainty": "Factor 2.5 span. Not characterised for this study."
+    },
+    {
+      "basis": "Bare earth or loose ground that deforms under load.",
+      "central": 0.045,
+      "high": 0.075,
+      "low": 0.028,
+      "surface_class": "dirt",
+      "uncertainty": "Factor 2.7 span and the weakest class. Any ranking that depends on separating two dirt routes is not supported by this model."
+    }
+  ],
+  "runtime_s": 473.3,
+  "scenarios": {
+    "paved_reference": {
+      "banned_turns": 3,
+      "directed_edges": 2429,
+      "distinct_ranked": 20,
+      "forced_turn_edges": 0,
+      "median_edge_length_m": 65.88,
+      "nodes_with_outgoing_edges": 1325,
+      "out_degree_histogram": {
+        "1": 478,
+        "2": 606,
+        "3": 226,
+        "4": 14,
+        "5": 1
+      },
+      "profiled_edges": 2429,
+      "restriction_notes": [
+        "relation 1781195 (no_left_turn) touches no admitted edge",
+        "relation 1781196 no_left_turn: 1x1 turn(s) banned",
+        "relation 1781911 no_left_turn: 1x1 turn(s) banned",
+        "relation 1781912 no_left_turn: 1x1 turn(s) banned"
+      ],
+      "routes_found": 3233,
+      "search": {
+        "expansions": 47464,
+        "seeds": 2400,
+        "seeds_with_exhausted_budget": 0
+      },
+      "simulable_edges": 2400,
+      "surface_counts": {
+        "asphalt_good": 2429
+      },
+      "total_directed_length_km": 426.354,
+      "unsimulable_reasons": {
+        "segment grade +0.512 exceeds the simulator bound 0.5": 1,
+        "segment grade +0.524 exceeds the simulator bound 0.5": 1,
+        "segment grade +0.574 exceeds the simulator bound 0.5": 1,
+        "segment grade -0.565 exceeds the simulator bound 0.5": 1,
+        "segment grade -0.755 exceeds the simulator bound 0.5": 1
+      },
+      "usability_counts": {
+        "paved_reference": 2429
+      }
+    },
+    "reference_vtc": {
+      "banned_turns": 3,
+      "directed_edges": 3919,
+      "distinct_ranked": 20,
+      "forced_turn_edges": 0,
+      "median_edge_length_m": 61.73,
+      "nodes_with_outgoing_edges": 1965,
+      "out_degree_histogram": {
+        "1": 648,
+        "2": 721,
+        "3": 558,
+        "4": 35,
+        "5": 3
+      },
+      "profiled_edges": 3919,
+      "restriction_notes": [
+        "relation 1781195 (no_left_turn) touches no admitted edge",
+        "relation 1781196 no_left_turn: 1x1 turn(s) banned",
+        "relation 1781911 no_left_turn: 1x1 turn(s) banned",
+        "relation 1781912 no_left_turn: 1x1 turn(s) banned"
+      ],
+      "routes_found": 5427,
+      "search": {
+        "expansions": 503651,
+        "seeds": 3873,
+        "seeds_with_exhausted_budget": 80
+      },
+      "simulable_edges": 3873,
+      "surface_counts": {
+        "asphalt_degraded": 1490,
+        "asphalt_good": 2429
+      },
+      "total_directed_length_km": 637.81,
+      "unsimulable_reasons": {
+        "segment grade +0.512 exceeds the simulator bound 0.5": 1,
+        "segment grade +0.524 exceeds the simulator bound 0.5": 1,
+        "segment grade -0.565 exceeds the simulator bound 0.5": 1,
+        "segment grade -0.755 exceeds the simulator bound 0.5": 1,
+        "the edge collapses to zero length": 2
+      },
+      "usability_counts": {
+        "paved_reference": 2429,
+        "reference_vtc": 1490
+      }
+    }
+  },
+  "source": "offline reconstruction from the frozen Overpass extract and acquired RGE ALTI elevations"
+}

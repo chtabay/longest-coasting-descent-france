@@ -24,6 +24,14 @@ class StructureStatus(str, Enum):
 
 @dataclass(frozen=True)
 class SourceProvenance:
+    """Everything needed to re-obtain and re-verify one source.
+
+    ``elevation_model_kind`` is the field the structure rule reads.  It must be
+    ``"terrain"`` for a bare-earth model, ``"surface"`` for a DSM, ``"roadway"``
+    for a source that actually measures the trafficked surface, and ``None``
+    when the provenance describes geometry rather than elevation.
+    """
+
     producer: str
     dataset: str
     version: str
@@ -32,6 +40,25 @@ class SourceProvenance:
     original_crs: str
     original_units: str
     sha256: str | None = None
+    discovery_url: str | None = None
+    vertical_datum: str | None = None
+    licence: str | None = None
+    attribution: str | None = None
+    byte_size: int | None = None
+    elevation_model_kind: str | None = None
+
+    @property
+    def measures_bare_ground(self) -> bool:
+        """True when this source cannot describe a deck, tunnel bore or viaduct.
+
+        An explicit ``elevation_model_kind`` always wins.  The dataset-name
+        heuristic only applies to provenance records that predate the field, so
+        that a source which never declares its kind still cannot silently pass
+        the structure rule.
+        """
+        if self.elevation_model_kind is not None:
+            return self.elevation_model_kind in {"terrain", "surface"}
+        return self.dataset.lower().startswith(("terrain", "surface"))
 
 
 @dataclass(frozen=True)
@@ -117,7 +144,7 @@ def build_profile_segments(
         raise ValueError("Profile construction requires metric Lambert-93 / EPSG:2154 coordinates.")
     if (
         edge.structure_status is not StructureStatus.NORMAL
-        and edge.elevation_provenance.dataset.startswith("terrain")
+        and edge.elevation_provenance.measures_bare_ground
     ):
         raise ValueError(
             "Terrain elevation cannot be assigned blindly to bridge/tunnel/stacked edges."

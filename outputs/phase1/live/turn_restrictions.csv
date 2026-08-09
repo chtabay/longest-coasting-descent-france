@@ -1,0 +1,5 @@
+source,relation_id,restriction,from_way_ids,via_node_ids,via_way_ids,to_way_ids
+live,1781195,no_left_turn,132695638,1459263557,,132695614
+live,1781196,no_left_turn,54633493,2424615024,,132663414
+live,1781911,no_left_turn,23256122,251671407,,132695619
+live,1781912,no_left_turn,132695627,2424615083,,234164220

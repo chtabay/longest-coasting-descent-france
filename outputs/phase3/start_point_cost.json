@@ -1,0 +1,28 @@
+{
+  "paved_reference": {
+    "cache_hits": 11,
+    "distinct_seeds": 4,
+    "max_relative_gain": 0.0,
+    "routes_studied": 10,
+    "rows_differing_from_the_uncached_study": 0,
+    "searches_avoided": 55,
+    "searches_performed": 40,
+    "searches_without_caching": 95,
+    "seconds_measured": 21.7,
+    "seconds_per_search": 0.54,
+    "seconds_projected_without_caching": 51.5
+  },
+  "reference_vtc": {
+    "cache_hits": 3,
+    "distinct_seeds": 1,
+    "max_relative_gain": 0.0,
+    "routes_studied": 10,
+    "rows_differing_from_the_uncached_study": 0,
+    "searches_avoided": 102,
+    "searches_performed": 8,
+    "searches_without_caching": 110,
+    "seconds_measured": 980.5,
+    "seconds_per_search": 122.57,
+    "seconds_projected_without_caching": 13482.3
+  }
+}

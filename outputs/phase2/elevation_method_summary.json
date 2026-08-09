@@ -1,0 +1,83 @@
+{
+  "criteria": {
+    "elevation_conservation": "median and maximum |net dz error| against the 5 m measurement",
+    "hairpin_behaviour": "median worst grade within 25 m of a bend under 40 m radius",
+    "plausible_grades": "segments beyond 25 % and the median worst grade",
+    "stop_sensitivity": "runs whose stop reason changes with the step",
+    "temporal_stability": "relative spread of elapsed time between 0.01 s and 0.10 s steps"
+  },
+  "edges_studied": 400,
+  "methods": {
+    "adaptive_geometry": {
+      "edges": 400,
+      "implausible_segments_total": 1572,
+      "max_abs_net_dz_error_m": 0.0,
+      "max_time_step_spread_ratio": 0.011512,
+      "median_abs_net_dz_error_m": 0.0,
+      "median_ascent_inflation": 0.9608,
+      "median_hairpin_max_grade": 0.2652,
+      "median_max_grade": 0.2123,
+      "median_segments": 34.0,
+      "median_time_step_spread_ratio": 0.000443,
+      "simulable_share": 0.8325,
+      "stop_reason_unstable": 0
+    },
+    "net_dz_constrained": {
+      "edges": 400,
+      "implausible_segments_total": 674,
+      "max_abs_net_dz_error_m": 0.0,
+      "max_time_step_spread_ratio": 0.004882,
+      "median_abs_net_dz_error_m": 0.0,
+      "median_ascent_inflation": 0.7992,
+      "median_hairpin_max_grade": 0.1945,
+      "median_max_grade": 0.1759,
+      "median_segments": 26.0,
+      "median_time_step_spread_ratio": 0.000408,
+      "simulable_share": 0.8975,
+      "stop_reason_unstable": 0
+    },
+    "raw_10m": {
+      "edges": 400,
+      "implausible_segments_total": 749,
+      "max_abs_net_dz_error_m": 0.0,
+      "max_time_step_spread_ratio": 0.006682,
+      "median_abs_net_dz_error_m": 0.0,
+      "median_ascent_inflation": 0.9213,
+      "median_hairpin_max_grade": 0.2185,
+      "median_max_grade": 0.1807,
+      "median_segments": 26.0,
+      "median_time_step_spread_ratio": 0.000425,
+      "simulable_share": 0.9125,
+      "stop_reason_unstable": 0
+    },
+    "raw_25m": {
+      "edges": 400,
+      "implausible_segments_total": 257,
+      "max_abs_net_dz_error_m": 0.0,
+      "max_time_step_spread_ratio": 0.004244,
+      "median_abs_net_dz_error_m": 0.0,
+      "median_ascent_inflation": 0.8334,
+      "median_hairpin_max_grade": 0.1577,
+      "median_max_grade": 0.1415,
+      "median_segments": 11.0,
+      "median_time_step_spread_ratio": 0.000464,
+      "simulable_share": 0.9525,
+      "stop_reason_unstable": 0
+    },
+    "robust_median_local": {
+      "edges": 400,
+      "implausible_segments_total": 668,
+      "max_abs_net_dz_error_m": 4.59,
+      "max_time_step_spread_ratio": 0.007036,
+      "median_abs_net_dz_error_m": 0.425,
+      "median_ascent_inflation": 0.7926,
+      "median_hairpin_max_grade": 0.1933,
+      "median_max_grade": 0.1723,
+      "median_segments": 26.0,
+      "median_time_step_spread_ratio": 0.000406,
+      "simulable_share": 0.8975,
+      "stop_reason_unstable": 0
+    }
+  },
+  "scenario": "reference_vtc"
+}

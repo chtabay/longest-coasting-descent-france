@@ -6,3 +6,10 @@ __pycache__/
 outputs/*.png
 .cache/
 data/raw/
+
+# Scratch files written by review or analysis agents; never study artifacts.
+scratch_*.json
+
+# Local editor/tool configuration. Nothing here describes the study, and a
+# preview-server port from one machine is not a project artifact.
+.claude/

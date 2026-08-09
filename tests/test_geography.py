@@ -13,7 +13,6 @@ from coastdown import (
     lonlat_to_lambert93,
 )
 
-
 PROVENANCE = SourceProvenance(
     producer="fixture",
     dataset="road-altitude fixture",

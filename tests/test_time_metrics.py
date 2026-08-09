@@ -1,8 +1,7 @@
 import pytest
 
-from coastdown import BicycleSystem, RoadProfile, simulate_profile
+from coastdown import BicycleSystem, Environment, RoadProfile, simulate_profile
 from coastdown.physics import longitudinal_acceleration_m_s2
-from coastdown import Environment
 
 
 def low_loss_bicycle(crr: float = 0.01) -> BicycleSystem:

@@ -1,0 +1,18 @@
+{
+ "_provenance": {
+  "attribution": "© IGN — RGE ALTI® via Géoplateforme",
+  "licence": "Licence Ouverte / Open Licence (Etalab) 2.0",
+  "note": "Verbatim service response for two Oisans points and one point outside coverage, kept so the -99999.0 no-data sentinel stays under test offline.",
+  "producer": "IGN",
+  "request_url": "https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json?lon=6.0450000%7C6.0700000%7C-30.0000000&lat=45.0530000%7C45.0920000%7C40.0000000&resource=ign_rge_alti_par_territoires&delimiter=%7C&measures=false&zonly=true",
+  "resource": "ign_rge_alti_par_territoires",
+  "response_sha256": "1558697f73df63df3d73937596e01cb1315e7725b292a25847cac1b509521a27"
+ },
+ "response": {
+  "elevations": [
+   719.61,
+   1819.49,
+   -99999.0
+  ]
+ }
+}

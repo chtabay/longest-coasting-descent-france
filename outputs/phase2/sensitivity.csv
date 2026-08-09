@@ -1,0 +1,14 @@
+variant,description,routes_evaluated,top1_unchanged,positions_changed,kendall_like_stability,median_time_delta,min_time_delta,max_time_delta,top1_time_s
+baseline,"central Crr, CdA 0.55, rotating 1.5 kg, dt 0.05, raw_25m",20,True,0,1.0,0.0,0.0,0.0,420.3
+crr_low,low Crr bound for every surface,20,False,18,0.1,-0.1836,-0.3925,-0.0139,344.2
+crr_high,high Crr bound for every surface,20,False,17,0.15,-0.5111,-0.9011,0.1942,434.7
+cda_low,drag area 0.45 m2,20,True,18,0.1,-0.1477,-0.4853,0.1511,364.6
+cda_high,drag area 0.65 m2,20,True,13,0.35,-0.1026,-0.6535,0.1786,475.6
+rotating_zero,rotating equivalent mass disabled,20,True,10,0.5,-0.0014,-0.6261,0.064,423.2
+rotating_high,rotating equivalent mass 3 kg,20,True,7,0.65,-0.0093,-0.069,0.1143,417.5
+time_step_fine,integrator step 0.01 s,20,True,0,1.0,-0.0002,-0.0038,0.003,420.3
+time_step_coarse,integrator step 0.20 s,20,True,6,0.7,0.0006,-0.3328,0.0124,420.6
+method_raw_10m,elevation method raw_10m,20,True,11,0.45,0.0,-0.5459,0.0173,424.2
+method_net_dz,elevation method net_dz_constrained,20,True,10,0.5,0.0,-0.6146,0.0597,423.6
+lateral_conservative,lateral limit 0.20 g,20,True,17,0.15,0.0,-0.8023,0.0,420.3
+lateral_committed,lateral limit 0.50 g,20,True,0,1.0,0.0,0.0,0.0,420.3

@@ -1,2 +1,20 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Every tracked text file is stored AND checked out with LF on every platform.
+#
+# This is an integrity requirement, not a style preference: the phase manifests
+# record byte sizes and SHA-256 digests of tracked files (for example
+# tests/fixtures/phase1_oisans_edges.json). With the previous `* text=auto`
+# setting a Windows checkout produced CRLF working copies, so the same commit
+# yielded a different size and digest than a Linux checkout and the regenerated
+# manifest no longer matched the committed one.
+* text=auto eol=lf
+
+# Binary payloads must never be line-ending converted.
+*.png binary
+*.tif binary
+*.tiff binary
+*.zip binary
+*.7z binary
+*.gz binary
+*.pbf binary
+*.jpg binary
+*.jpeg binary

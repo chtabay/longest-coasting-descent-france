@@ -1,0 +1,65 @@
+seed_edge_id,osm_way_id,name,strict_distance_m,strict_expansions,strict_exhausted,cycles_distance_m,cycles_expansions,cycles_exhausted,cycles_runtime_s,gain_m,relative_gain,repeated_traversals,max_traversals_of_one_edge,identical_path,expansion_blowup,oracle_checked,oracle_agrees,oracle_routes,group
+osm-49164994-0-forward,49164994,Rue de Piégut,4494.85,27,False,4494.85,27,False,2.03,0.0,0.0,0,1,True,1.0,False,,,corridor
+osm-49164999-0-reverse,49164999,Rue du Col,3809.79,17,False,3809.79,17,False,1.37,0.0,0.0,0,1,True,1.0,False,,,corridor
+osm-1018237136-0-reverse,1018237136,service,3679.66,26,False,3679.66,26,False,1.44,0.0,0.0,0,1,True,1.0,False,,,corridor
+osm-39182590-0-reverse,39182590,Route de Sardonne,2798.0,3,False,2798.0,3,False,0.23,0.0,0.0,0,1,True,1.0,False,,,corridor
+osm-1007287274-0-forward,1007287274,Route des Lacs,975.25,3,False,975.25,3,False,0.13,0.0,0.0,0,1,True,1.0,True,True,3,sample
+osm-1040477514-0-forward,1040477514,D 526,8.15,1,False,8.15,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-1054888435-0-reverse,1054888435,D 211a,5.47,1,False,5.47,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-1082699907-1-forward,1082699907,Route de l'Altiport,12.77,1,False,12.77,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-1082749714-0-forward,1082749714,D 43a,579.57,10,False,579.57,10,False,0.1,0.0,0.0,0,1,True,1.0,True,True,10,sample
+osm-1085826391-0-forward,1085826391,Route de la Drayre,564.04,10,False,564.04,10,False,0.27,0.0,0.0,0,1,True,1.0,True,True,10,sample
+osm-1093032928-0-forward,1093032928,D 211a,1726.39,9,False,1726.39,9,False,0.22,0.0,0.0,0,1,True,1.0,True,True,9,sample
+osm-1175169236-0-reverse,1175169236,Chemin du Pied Moutet,157.23,4,False,157.23,4,False,0.08,0.0,0.0,0,1,True,1.0,True,True,4,sample
+osm-1192103070-2-reverse,1192103070,path,145.5,2,False,145.5,2,False,0.04,0.0,0.0,0,1,True,1.0,True,True,2,sample
+osm-119452952-0-forward,119452952,residential,2.88,1,False,2.88,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-1207875522-0-forward,1207875522,Avenue de l'Étendard,17.29,1,False,17.29,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-1275521947-0-reverse,1275521947,Chemin de la Pièce des Roux,188.72,3,False,188.72,3,False,0.07,0.0,0.0,0,1,True,1.0,True,True,3,sample
+osm-1315255667-1-forward,1315255667,D 211,1864.82,33,False,1864.82,33,False,1.26,0.0,0.0,0,1,True,1.0,True,True,33,sample
+osm-132668854-1-forward,132668854,Rue Ernest Graziotti,212.91,11,False,212.91,11,False,0.09,0.0,0.0,0,1,True,1.0,True,True,11,sample
+osm-132670333-1-forward,132670333,Rue des Colporteurs,78.85,1,False,78.85,1,False,0.02,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-132695614-0-forward,132695614,D 1091B,174.06,6,False,174.06,6,False,0.06,0.0,0.0,0,1,True,1.0,True,True,6,sample
+osm-133321131-5-reverse,133321131,D 25,91.84,6,False,91.84,6,False,0.04,0.0,0.0,0,1,True,1.0,True,True,6,sample
+osm-1354478684-0-reverse,1354478684,Chemin des Écoliers,6.28,1,False,6.28,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-1419373402-0-forward,1419373402,D 1091,4.6,1,False,4.6,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-1462422576-1-forward,1462422576,D 211,1401.9,29,False,1401.9,29,False,1.03,0.0,0.0,0,1,True,1.0,True,True,29,sample
+osm-165377595-0-forward,165377595,D 220,4.05,1,False,4.05,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-171437544-0-forward,171437544,Rue du Caroux,92.62,1,False,92.62,1,False,0.01,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-181439174-3-forward,181439174,service,281.71,10,False,304.39,22,False,0.22,22.68,0.0805,2,2,False,2.2,True,True,22,sample
+osm-187043351-2-forward,187043351,Chemin du Gua,628.59,10,False,628.59,10,False,0.12,0.0,0.0,0,1,True,1.0,True,True,10,sample
+osm-187062886-0-reverse,187062886,D 211a,68.61,1,False,68.61,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-210456504-1-forward,210456504,D 526,6.59,1,False,6.59,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-222916417-0-forward,222916417,D 44a,8.45,1,False,8.45,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-224136092-11-forward,224136092,D 526,66.21,1,False,66.21,1,False,0.01,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-232197103-0-forward,232197103,D 526,27.47,2,False,27.47,2,False,0.01,0.0,0.0,0,1,True,1.0,True,True,2,sample
+osm-232745872-0-forward,232745872,D 25,136.99,1,False,136.99,1,False,0.01,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-234480211-0-forward,234480211,service,23.84,1,False,23.84,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-244433206-0-reverse,244433206,Route des Hameaux,61.42,1,False,61.42,1,False,0.01,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-252082778-5-reverse,252082778,D 43,64.51,1,False,64.51,1,False,0.01,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-264079094-0-forward,264079094,D 526,201.94,2,False,201.94,2,False,0.04,0.0,0.0,0,1,True,1.0,True,True,2,sample
+osm-264100558-0-forward,264100558,D 211F,2132.97,39,False,2132.97,39,False,1.44,0.0,0.0,0,1,True,1.0,True,True,39,sample
+osm-264130581-1-forward,264130581,Chemin de la Pièce des Roux,70.02,1,False,70.02,1,False,0.02,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-270534114-0-reverse,270534114,Route du Puits,57.47,3,False,57.47,3,False,0.01,0.0,0.0,0,1,True,1.0,True,True,3,sample
+osm-28437432-1-forward,28437432,D 211,10.67,1,False,10.67,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-28440727-0-reverse,28440727,Avenue de Brandes,92.81,1,False,92.81,1,False,0.01,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-28476168-3-reverse,28476168,Avenue des Jeux,19.93,1,False,19.93,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-28477536-1-reverse,28477536,Rue de Belledonne,136.67,9,False,136.67,9,False,0.14,0.0,0.0,0,1,True,1.0,True,True,9,sample
+osm-30483377-13-reverse,30483377,Route du Petit Plan,1354.22,24,False,1354.22,24,False,0.83,0.0,0.0,0,1,True,1.0,True,True,24,sample
+osm-333449418-0-reverse,333449418,Résidence Arc En Ciel,55.52,1,False,55.52,1,False,0.01,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-356939690-1-forward,356939690,Chemin des Jeux,55.48,1,False,55.48,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-388682042-0-forward,388682042,service,15.6,1,False,15.6,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-404715676-0-reverse,404715676,D 211a,10.92,1,False,10.92,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-457903734-0-reverse,457903734,D 211,9.05,1,False,9.05,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-514010382-1-forward,514010382,Rue du Clos des Prés,137.59,4,False,137.59,4,False,0.02,0.0,0.0,0,1,True,1.0,True,True,4,sample
+osm-532727920-2-reverse,532727920,D 1091B,270.47,5,False,270.47,5,False,0.07,0.0,0.0,0,1,True,1.0,True,True,5,sample
+osm-545355232-0-reverse,545355232,D 526,371.9,7,False,371.9,7,False,0.15,0.0,0.0,0,1,True,1.0,True,True,7,sample
+osm-549991482-2-forward,549991482,D 1091B,106.72,8,False,106.72,8,False,0.05,0.0,0.0,0,1,True,1.0,True,True,8,sample
+osm-584403068-0-forward,584403068,D 44,8.88,1,False,8.88,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-675977101-0-reverse,675977101,Place de l'Olmet,181.78,6,False,181.78,6,False,0.05,0.0,0.0,0,1,True,1.0,True,True,6,sample
+osm-724634109-1-reverse,724634109,D 211,22.43,1,False,22.43,1,False,0.0,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-760412717-0-forward,760412717,Rue de la Grande Fontaine,113.86,3,False,113.86,3,False,0.03,0.0,0.0,0,1,True,1.0,True,True,3,sample
+osm-783261977-0-reverse,783261977,service,124.99,3,False,124.99,3,False,0.06,0.0,0.0,0,1,True,1.0,True,True,3,sample
+osm-822949903-1-forward,822949903,service,179.7,7,False,179.7,7,False,0.09,0.0,0.0,0,1,True,1.0,True,True,7,sample
+osm-878259634-0-reverse,878259634,pré de l'arche,112.36,1,False,112.36,1,False,0.02,0.0,0.0,0,1,True,1.0,True,True,1,sample
+osm-907466356-2-reverse,907466356,service,26.88,3,False,26.88,3,False,0.01,0.0,0.0,0,1,True,1.0,True,True,3,sample
+osm-97974234-1-reverse,97974234,Route de l'Alpette,574.66,4,False,574.66,4,False,0.07,0.0,0.0,0,1,True,1.0,True,True,4,sample

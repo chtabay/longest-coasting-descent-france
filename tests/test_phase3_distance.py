@@ -1,0 +1,1192 @@
+"""The maximum-distance objective: definitive stop, constrained braking, search.
+
+Physics cases run on hand-built profiles where the answer is derivable, usually
+as an energy bracket rather than a closed form: rolling resistance gives an
+exact upper bound on distance and holding drag at its initial value gives an
+exact lower bound, and a correct simulation must land strictly between them.
+
+Search cases run on synthetic graphs built through the real OSM parsing path,
+reusing the Phase 2 builders so tag handling, way splitting, direction rules and
+turn restrictions stay exercised.
+
+The recurring trap in a distance objective is that the *fastest* route and the
+*furthest* route are different routes, and that a route which stops can
+sometimes restart. Several cases exist only to catch an engine that conflates
+them.
+"""
+
+from __future__ import annotations
+
+import itertools
+import math
+from collections import Counter
+
+import pytest
+from test_phase2_graph_and_search import (
+    ASPHALT,
+    METRE_DEG,
+    arc,
+    forward_edge,
+    osm,
+    profiles_for,
+    straight,
+    way,
+)
+
+from coastdown.coasting import (
+    braking_allowance,
+    can_restart_from_rest,
+    segment_speed_limits,
+    simulate_coasting,
+)
+from coastdown.curvature import LATERAL_LIMIT_SCENARIOS_M_S2, permitted_speed_m_s
+from coastdown.distance_search import (
+    DistanceBudget,
+    StartPointStudy,
+    brute_force_distance_routes,
+    distinct_longest,
+    edge_bend_limits,
+    evaluate_distance_route,
+    exhaustive_routes,
+    global_longest,
+    search_distance_from_edge,
+    start_offsets,
+    trim_edge_profile,
+)
+from coastdown.graph import build_graph
+from coastdown.models import BicycleSystem, RoadProfile
+from coastdown.search import build_edge_profile
+
+V0 = 15.0 / 3.6
+CRR = 0.006
+GRAVITY = 9.80665
+TRANSLATIONAL_KG = 90.0
+EFFECTIVE_KG = 91.5
+DRAG_COEFFICIENT = 0.5 * 1.225 * 0.55
+
+
+def energy_bracket_m(grade_ratio: float = 0.0, crr: float = CRR) -> tuple[float, float]:
+    """Exact bounds on the distance a flat-or-rising run can cover.
+
+    Upper bound: ignore drag entirely.  Lower bound: charge drag at the initial
+    speed for the whole run, which it can never exceed while decelerating.
+    """
+    kinetic = 0.5 * EFFECTIVE_KG * V0 * V0
+    theta = math.atan(grade_ratio)
+    resistive = TRANSLATIONAL_KG * GRAVITY * (math.sin(theta) + crr * math.cos(theta))
+    return kinetic / (resistive + DRAG_COEFFICIENT * V0 * V0), kinetic / resistive
+
+
+# --------------------------------------------------------------------------
+# definitive physical stop
+# --------------------------------------------------------------------------
+
+
+def test_restart_from_rest_follows_the_derived_threshold() -> None:
+    # At rest the drag term vanishes, so a(0) > 0 reduces to -tan(theta) > Crr.
+    assert can_restart_from_rest(-0.0061, CRR)
+    assert not can_restart_from_rest(-0.0059, CRR)
+    assert not can_restart_from_rest(-CRR, CRR), "exact balance does not restart"
+    assert not can_restart_from_rest(0.0, CRR)
+    assert not can_restart_from_rest(0.05, CRR)
+    # A worse surface needs a steeper road to move at all.
+    assert not can_restart_from_rest(-0.02, 0.045)
+    assert can_restart_from_rest(-0.05, 0.045)
+
+
+def test_a_flat_run_stops_on_resistance_alone_inside_its_energy_bracket() -> None:
+    run = simulate_coasting(RoadProfile([5000.0], [0.0], [CRR]), initial_speed_m_s=V0)
+    low, high = energy_bracket_m()
+    assert run.stop_reason == "definitive_stop"
+    assert low < run.travelled_distance_m < high
+    assert run.speed_m_s[-1] == 0.0
+    assert run.restart_count == 0
+    assert len(run.zero_events) == 1 and not run.zero_events[0].restarted
+
+
+def test_the_diagnostic_distances_are_ordered_and_bounded_by_the_stop() -> None:
+    run = simulate_coasting(RoadProfile([5000.0], [0.0], [CRR]), initial_speed_m_s=V0)
+    diagnostics = dict(run.diagnostic_distances_m)
+    assert diagnostics["5kmh"] < diagnostics["1kmh"] <= run.travelled_distance_m
+    assert diagnostics["030ms"] <= run.travelled_distance_m
+    # 1 km/h is 0.278 m/s, below the old 0.30 m/s threshold, so it comes later.
+    assert diagnostics["030ms"] <= diagnostics["1kmh"]
+
+
+def test_a_rise_that_consumes_all_the_energy_stops_at_its_own_end() -> None:
+    low, high = energy_bracket_m(0.05)
+    probe = simulate_coasting(RoadProfile([500.0], [0.05], [CRR]), initial_speed_m_s=V0)
+    assert low < probe.travelled_distance_m < high
+    stopping = probe.travelled_distance_m
+    # A rise exactly as long as the energy allows: the run ends at its end.
+    exact = simulate_coasting(RoadProfile([stopping], [0.05], [CRR]), initial_speed_m_s=V0)
+    assert exact.travelled_distance_m == pytest.approx(stopping, rel=1e-6)
+
+
+def test_a_zero_at_a_boundary_restarts_when_the_next_grade_is_steep_enough() -> None:
+    probe = simulate_coasting(RoadProfile([500.0], [0.05], [CRR]), initial_speed_m_s=V0)
+    stopping = probe.travelled_distance_m
+    # -3 % is well beyond the -0.6 % restart threshold.
+    run = simulate_coasting(
+        RoadProfile([stopping, 800.0], [0.05, -0.03], [CRR, CRR]), initial_speed_m_s=V0
+    )
+    assert run.restart_count == 1, "the bicycle must roll on into the descent"
+    assert run.travelled_distance_m > stopping + 700
+    event = run.zero_events[0]
+    assert event.restarted and event.acceleration_at_rest_m_s2 > 0
+    assert event.distance_m == pytest.approx(stopping, abs=1.0)
+
+
+def test_the_same_zero_is_definitive_when_the_next_grade_is_too_gentle() -> None:
+    probe = simulate_coasting(RoadProfile([500.0], [0.05], [CRR]), initial_speed_m_s=V0)
+    stopping = probe.travelled_distance_m
+    # -0.4 % is inside the -0.6 % threshold, so gravity cannot beat resistance.
+    run = simulate_coasting(
+        RoadProfile([stopping, 800.0], [0.05, -0.004], [CRR, CRR]), initial_speed_m_s=V0
+    )
+    assert run.stop_reason == "definitive_stop"
+    assert run.restart_count == 0
+    assert run.travelled_distance_m == pytest.approx(stopping, abs=1.0)
+
+
+def test_a_mid_segment_zero_is_always_definitive() -> None:
+    # The rise is far longer than the energy allows, so zero lands inside it.
+    run = simulate_coasting(RoadProfile([2000.0], [0.05], [CRR]), initial_speed_m_s=V0)
+    assert run.stop_reason == "definitive_stop"
+    assert run.travelled_distance_m < 1000
+    assert run.restart_count == 0
+
+
+def test_a_run_may_start_from_rest_when_the_road_is_steep_enough() -> None:
+    rolling = simulate_coasting(RoadProfile([600.0], [-0.03], [CRR]), initial_speed_m_s=0.0)
+    assert rolling.travelled_distance_m == pytest.approx(600.0, abs=1e-6)
+    assert rolling.stop_reason == "route_end"
+    stuck = simulate_coasting(RoadProfile([600.0], [-0.004], [CRR]), initial_speed_m_s=0.0)
+    assert stuck.stop_reason == "definitive_stop"
+    assert stuck.travelled_distance_m == pytest.approx(0.0, abs=1e-6)
+
+
+@pytest.mark.parametrize("epsilon", [1e-4, 1e-6, 1e-9, 1e-12])
+def test_the_result_does_not_depend_on_the_zero_detection_threshold(epsilon: float) -> None:
+    profile = RoadProfile([300.0, 400.0, 900.0], [-0.02, 0.03, -0.05], [CRR] * 3)
+    run = simulate_coasting(profile, initial_speed_m_s=V0, zero_speed_epsilon_m_s=epsilon)
+    reference = simulate_coasting(profile, initial_speed_m_s=V0, zero_speed_epsilon_m_s=1e-6)
+    assert run.travelled_distance_m == pytest.approx(reference.travelled_distance_m, rel=1e-6)
+    assert run.stop_reason == reference.stop_reason
+    assert run.restart_count == reference.restart_count
+
+
+def test_a_closed_cycle_always_returns_less_energy_than_it_received() -> None:
+    """The invariant that makes route reuse safe to allow.
+
+    On any closed cycle returning the bicycle to the same elevation, the
+    mechanical energy available after the lap must be strictly less than before
+    it: gravity nets to zero and both rolling resistance and drag are
+    unconditionally dissipative. A cycle that returned *more* would let a search
+    accumulate distance without bound, so this is what separates a physically
+    real loop from a data or modelling error.
+
+    Most loops are not lappable at all — a 300 m lap at 4 % stops the bicycle on
+    its own climb — so the test asserts the invariant in both forms: strict
+    energy loss when the lap completes, and a definitive stop when it does not.
+
+    **This holds for the reference scenario, which has no wind.**  The argument
+    rests on gravity netting to zero over a closed lap while every other term
+    only removes energy.  An environment able to *supply* energy breaks it:
+    under a non-zero along-route wind the aerodynamic term is a source over part
+    of the lap, and a closed cycle may return more than it received.  A wind
+    scenario must re-establish its own bound before route reuse is allowed under
+    it; this invariant does not transfer to it.
+    """
+    for grade, length, speed in ((0.04, 300.0, 12.0), (0.02, 25.0, 14.0), (0.01, 100.0, 10.0)):
+        loop = RoadProfile([length, length], [-grade, grade], [CRR, CRR])
+        assert math.fsum(
+            g * segment for g, segment in zip(loop.grade_ratios, loop.segment_lengths_m)
+        ) == pytest.approx(0.0, abs=1e-9), "the lap must be closed"
+        run = simulate_coasting(loop, initial_speed_m_s=speed)
+        if run.stop_reason == "route_end":
+            after = 0.5 * EFFECTIVE_KG * run.speed_m_s[-1] ** 2
+            before = 0.5 * EFFECTIVE_KG * speed**2
+            assert after < before, f"a closed lap at {grade:.0%} returned energy"
+        else:
+            assert run.stop_reason == "definitive_stop"
+
+
+def test_repeated_laps_of_a_closed_cycle_decay_monotonically() -> None:
+    """Energy falls lap after lap until the loop is no longer passable.
+
+    This is the property a search may rely on once the once-per-piece rule is
+    lifted: repeating a loop is self-limiting, so it cannot manufacture
+    distance.  Like the invariant above it assumes the windless reference
+    scenario; an environment that can supply energy does not guarantee decay.
+    """
+    lap = ([25.0, 25.0], [-0.02, 0.02], [CRR, CRR])
+    speed = 14.0
+    energies = [0.5 * EFFECTIVE_KG * speed**2]
+    laps = 0
+    while laps < 20:
+        run = simulate_coasting(RoadProfile(*lap), initial_speed_m_s=speed)
+        if run.stop_reason != "route_end":
+            break
+        speed = run.speed_m_s[-1]
+        energies.append(0.5 * EFFECTIVE_KG * speed**2)
+        laps += 1
+    assert laps >= 2, f"the 50 m lap must be passable at least twice from 14 m/s, got {laps}"
+    assert all(later < earlier for earlier, later in itertools.pairwise(energies)), (
+        "energy must decay on every lap"
+    )
+    assert energies[-1] < energies[0]
+
+
+# --------------------------------------------------------------------------
+# constrained braking
+# --------------------------------------------------------------------------
+
+
+def test_the_envelope_places_each_constraint_on_its_own_segment() -> None:
+    profile = RoadProfile([25.0] * 4, [-0.05] * 4, [CRR] * 4)
+    limits = segment_speed_limits(profile, [(10.0, 8.0), (60.0, 5.0), (62.0, 4.0)])
+    assert limits[0] == 8.0
+    assert math.isinf(limits[1])
+    assert limits[2] == 4.0, "the tighter of two constraints in one segment wins"
+    assert math.isinf(limits[3])
+
+
+def test_anticipated_braking_pulls_the_limit_upstream() -> None:
+    profile = RoadProfile([25.0] * 4, [0.0] * 4, [CRR] * 4)
+    limits = (math.inf, math.inf, math.inf, 5.0)
+    allowance = braking_allowance(profile, limits, 1.5)
+    assert allowance[3] == 5.0
+    # v^2 = 5^2 + 2 * 1.5 * 25 = 100 -> 10 m/s one segment upstream.
+    assert allowance[2] == pytest.approx(10.0, rel=1e-9)
+    assert allowance[1] == pytest.approx(math.sqrt(100.0 + 75.0), rel=1e-9)
+    # The allowance rises going upstream: the further from the constraint, the
+    # more speed there is room to shed before reaching it.
+    assert allowance[0] > allowance[1] > allowance[2] > allowance[3]
+
+
+def test_braking_removes_energy_only_where_the_envelope_binds() -> None:
+    profile = RoadProfile([50.0] * 20, [-0.08] * 20, [CRR] * 20)
+    free = simulate_coasting(profile, initial_speed_m_s=V0, braking="none")
+    limited = simulate_coasting(
+        profile, initial_speed_m_s=V0, bend_limits=[(600.0, 6.0)], braking="ideal"
+    )
+    assert free.braking_energy_j == 0.0
+    assert limited.braking_energy_j > 0.0
+    # Distinct segments the envelope actually bound, not integration substeps:
+    # the substep count scales with the time step and says nothing about the road.
+    assert limited.active_constraint_count > 0
+    assert limited.braking_substeps >= limited.active_constraint_count
+    assert limited.max_speed_m_s < free.max_speed_m_s
+    # The free speed the dynamics would have reached is still reported.
+    assert limited.max_free_speed_m_s > limited.max_speed_m_s
+
+
+def test_a_bend_that_needs_braking_does_not_end_the_run() -> None:
+    # Phase 2 terminated a route at the first unholdable bend. It now brakes and
+    # keeps going, which is what a rider does.
+    profile = RoadProfile([50.0] * 30, [-0.06] * 30, [CRR] * 30)
+    limited = simulate_coasting(
+        profile, initial_speed_m_s=V0, bend_limits=[(500.0, 5.0)], braking="ideal"
+    )
+    assert limited.stop_reason == "route_end"
+    assert limited.travelled_distance_m == pytest.approx(1500.0, rel=1e-9)
+    assert limited.braking_energy_j > 0
+
+
+def test_the_braking_model_changes_dissipation_but_not_distance() -> None:
+    """The two representations travel identically; only the bookkeeping differs.
+
+    Both leave the last binding constraint at the same place and at the same
+    speed, so the state governing everything downstream is identical and the
+    distance cannot differ. That is structural, not a coincidence of these
+    numbers.
+
+    The braking energy does differ, and it is deliberately *not* treated as a
+    discriminator: it only records how much speed had to be removed, and
+    carrying more speed into a constraint means more to destroy. Here the
+    anticipated model rides the descent slower, loses less to drag, and so
+    arrives with more energy left for the brakes to take.
+    """
+    profile = RoadProfile([25.0] * 60 + [25.0] * 160, [-0.05] * 60 + [0.01] * 160, [CRR] * 220)
+    bends = [(700.0, 6.0), (1200.0, 5.0)]
+    ideal = simulate_coasting(profile, initial_speed_m_s=V0, bend_limits=bends, braking="ideal")
+    anticipated = simulate_coasting(
+        profile, initial_speed_m_s=V0, bend_limits=bends, braking="anticipated"
+    )
+    free = simulate_coasting(profile, initial_speed_m_s=V0, braking="none")
+
+    assert ideal.stop_reason == anticipated.stop_reason == "definitive_stop"
+    assert anticipated.travelled_distance_m == pytest.approx(ideal.travelled_distance_m, rel=1e-9)
+    assert anticipated.braking_energy_j > ideal.braking_energy_j
+    assert anticipated.braking_distance_m > ideal.braking_distance_m
+    # Anticipation spreads the same job over more of the road.
+    assert anticipated.active_constraint_count > ideal.active_constraint_count
+    assert anticipated.elapsed_time_s > ideal.elapsed_time_s
+    # Braking costs distance against an unconstrained run, but only a little.
+    assert ideal.travelled_distance_m < free.travelled_distance_m
+    assert ideal.travelled_distance_m > 0.99 * free.travelled_distance_m
+
+
+# --------------------------------------------------------------------------
+# search under the distance objective
+# --------------------------------------------------------------------------
+
+
+def longest(graph, profiles, seed, **kwargs):
+    routes, budget = search_distance_from_edge(graph, profiles, seed, **kwargs)
+    assert not budget.exhausted
+    assert routes
+    return routes[0]
+
+
+def test_at_equal_drop_a_long_gentle_descent_travels_further_than_a_short_steep_one() -> None:
+    """The comparison only means something at equal elevation drop.
+
+    Compared at equal *length* the steeper road wins trivially, because it banks
+    more potential energy. Given the same 48 m to spend, the gentle road turns
+    it into 6 km of road ridden while the steep road turns it into 600 m plus a
+    run-out, and the gentle road wins on distance while never exceeding 8 km/h.
+    """
+    gentle = simulate_coasting(
+        RoadProfile([6000.0, 6000.0], [-0.008, 0.0], [CRR, CRR]), initial_speed_m_s=V0
+    )
+    steep = simulate_coasting(
+        RoadProfile([600.0, 6000.0], [-0.08, 0.0], [CRR, CRR]), initial_speed_m_s=V0
+    )
+    assert gentle.travelled_distance_m > 6000
+    assert steep.travelled_distance_m < 1200
+    assert gentle.travelled_distance_m > 4 * steep.travelled_distance_m
+    assert steep.max_speed_m_s > 3 * gentle.max_speed_m_s
+
+
+def test_a_descent_then_a_long_flat_runs_out_on_the_flat() -> None:
+    descent = way(1, straight(0, 500), ASPHALT, last_node=18)
+    flat = way(2, straight(500, 4000), ASPHALT, first_node=18)
+    flat["geometry"][0] = descent["geometry"][-1]
+    graph = build_graph(osm(descent, flat), "paved_reference")
+    profiles = profiles_for(graph, {1: -0.05, 2: 0.0})
+    route = longest(graph, profiles, forward_edge(graph, 1))
+    assert route.edges_used == 2
+    assert route.stop_reason == "definitive_stop"
+    # It must get well past the junction: the descent banked real energy, and
+    # the run ends on the flat rather than at the end of the road.
+    assert 700 < route.distance_m < 900
+    assert route.distance_m > 520, "the run continues past the 500 m descent"
+    assert route.net_dz_m == pytest.approx(-25.0, abs=1.0)
+
+
+def test_inertia_clears_a_small_rise_and_the_run_continues_beyond_it() -> None:
+    descent = way(1, straight(0, 600), ASPHALT, last_node=18)
+    rise = way(2, straight(600, 40), ASPHALT, first_node=18, last_node=24)
+    runout = way(3, straight(640, 1500), ASPHALT, first_node=24)
+    rise["geometry"][0] = descent["geometry"][-1]
+    runout["geometry"][0] = rise["geometry"][-1]
+    graph = build_graph(osm(descent, rise, runout), "paved_reference")
+    profiles = profiles_for(graph, {1: -0.06, 2: 0.02, 3: -0.02})
+    route = longest(graph, profiles, forward_edge(graph, 1))
+    assert [graph.edges[edge].osm_way_id for edge in route.edge_ids] == [1, 2, 3]
+    assert route.ascent_m > 0
+
+
+def test_a_geometrically_longer_branch_can_be_the_worse_choice() -> None:
+    # Branch 2 is 1200 m but rises; branch 3 is 900 m and descends gently. The
+    # engine must prefer total distance travelled, not the longer geometry.
+    trunk = way(1, straight(0, 300), ASPHALT, last_node=18)
+    uphill_long = way(2, straight(300, 1200), ASPHALT, first_node=18)
+    gentle_short = way(3, straight(300, 900, lat=45.05 + 0.0006), ASPHALT, first_node=18)
+    uphill_long["geometry"][0] = gentle_short["geometry"][0] = trunk["geometry"][-1]
+    graph = build_graph(osm(trunk, uphill_long, gentle_short), "paved_reference")
+    profiles = profiles_for(graph, {1: -0.03, 2: 0.03, 3: -0.004})
+    route = longest(graph, profiles, forward_edge(graph, 1))
+    chosen = [graph.edges[edge].osm_way_id for edge in route.edge_ids]
+    assert chosen == [1, 3], "the longer branch stops sooner"
+
+
+def test_the_furthest_fork_is_neither_the_steepest_nor_the_lowest() -> None:
+    # Steep branch: 250 m at -12 %, then nothing. Middle branch: 2500 m at
+    # -0.9 %, which is above the restart threshold and keeps rolling furthest.
+    # Deep branch: 400 m at -20 % into a wall.
+    trunk = way(1, straight(0, 200), ASPHALT, last_node=18)
+    steep = way(2, straight(200, 250), ASPHALT, first_node=18)
+    middle = way(3, straight(200, 2500, lat=45.05 + 0.0005), ASPHALT, first_node=18)
+    deep = way(4, straight(200, 400, lat=45.05 - 0.0005), ASPHALT, first_node=18)
+    for element in (steep, middle, deep):
+        element["geometry"][0] = trunk["geometry"][-1]
+    graph = build_graph(osm(trunk, steep, middle, deep), "paved_reference")
+    profiles = profiles_for(graph, {1: -0.02, 2: -0.12, 3: -0.009, 4: -0.20})
+    route = longest(graph, profiles, forward_edge(graph, 1))
+    chosen = [graph.edges[edge].osm_way_id for edge in route.edge_ids]
+    assert chosen == [1, 3]
+    assert route.distance_m > 2000
+
+
+def test_the_cycle_rule_refuses_the_second_traversal_of_a_loop() -> None:
+    first = way(1, straight(0, 200), ASPHALT, first_node=10, last_node=20)
+    second = way(
+        2,
+        [(200 * METRE_DEG, 45.05), (300 * METRE_DEG, 45.05 + 100 * METRE_DEG)],
+        ASPHALT,
+        first_node=20,
+        last_node=30,
+    )
+    third = way(
+        3,
+        [(300 * METRE_DEG, 45.05 + 100 * METRE_DEG), (0.0, 45.05)],
+        ASPHALT,
+        first_node=30,
+        last_node=10,
+    )
+    graph = build_graph(osm(first, second, third), "paved_reference")
+    profiles = profiles_for(graph, {1: -0.03, 2: -0.03, 3: -0.03})
+    routes, budget = search_distance_from_edge(graph, profiles, forward_edge(graph, 1))
+    assert not budget.exhausted
+    for route in routes:
+        pieces = [
+            (graph.edges[edge].osm_way_id, graph.edges[edge].piece_index) for edge in route.edge_ids
+        ]
+        assert len(pieces) == len(set(pieces)), "a piece may not be re-entered"
+
+
+def test_a_tight_bend_costs_speed_but_the_route_carries_on() -> None:
+    approach = way(1, straight(0, 900), ASPHALT, last_node=43)
+    bend = way(2, arc(900, 15, 15.0, 90.0, 14), ASPHALT, first_node=43, last_node=90)
+    exit_road = way(3, straight(920, 1200, lat=45.05 + 0.0004), ASPHALT, first_node=90)
+    bend["geometry"][0] = approach["geometry"][-1]
+    exit_road["geometry"][0] = bend["geometry"][-1]
+    graph = build_graph(osm(approach, bend, exit_road), "paved_reference")
+    profiles = profiles_for(graph, {1: -0.08, 2: -0.02, 3: -0.01})
+    route = longest(graph, profiles, forward_edge(graph, 1))
+    assert route.edges_used == 3, "braking must not truncate the route"
+    assert route.braking_energy_j > 0
+    assert route.active_constraints > 0
+    # The same route with braking disabled dissipates nothing and is not slower.
+    free = evaluate_distance_route(
+        graph, profiles, route.edge_ids, seed_edge_id=route.seed_edge_id, braking="none"
+    )
+    assert free.braking_energy_j == 0.0
+    assert free.max_speed_m_s >= route.max_speed_m_s
+
+
+def test_a_forbidden_road_is_still_never_entered() -> None:
+    trunk = way(1, straight(0, 300), ASPHALT, last_node=18)
+    private = way(2, straight(300, 3000), {**ASPHALT, "bicycle": "no"}, first_node=18)
+    private["geometry"][0] = trunk["geometry"][-1]
+    graph = build_graph(osm(trunk, private), "paved_reference")
+    assert not any(edge.osm_way_id == 2 for edge in graph.edges.values())
+    route = longest(graph, profiles_for(graph, {1: -0.05}), forward_edge(graph, 1))
+    assert route.edges_used == 1
+
+
+# --------------------------------------------------------------------------
+# the engine must equal brute force
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "grades",
+    [
+        {1: -0.03, 2: -0.12, 3: -0.009, 4: -0.02, 5: 0.01},
+        {1: -0.05, 2: -0.01, 3: -0.05, 4: 0.03, 5: -0.03},
+        {1: -0.02, 2: 0.0, 3: -0.008, 4: -0.01, 5: -0.02},
+        {1: -0.01, 2: 0.02, 3: -0.007, 4: -0.004, 5: 0.0},
+    ],
+)
+def test_the_engine_matches_the_unpruned_oracle(grades) -> None:
+    trunk = way(1, straight(0, 300), ASPHALT, last_node=21)
+    left = way(2, straight(300, 400), ASPHALT, first_node=21, last_node=46)
+    right = way(3, straight(300, 500, lat=45.05 + 0.0004), ASPHALT, first_node=21, last_node=80)
+    left_tail = way(4, straight(700, 900), ASPHALT, first_node=46)
+    right_tail = way(5, straight(800, 900, lat=45.05 + 0.0004), ASPHALT, first_node=80)
+    left["geometry"][0] = right["geometry"][0] = trunk["geometry"][-1]
+    left_tail["geometry"][0] = left["geometry"][-1]
+    right_tail["geometry"][0] = right["geometry"][-1]
+    graph = build_graph(osm(trunk, left, right, left_tail, right_tail), "paved_reference")
+    profiles = profiles_for(graph, grades)
+    seed = forward_edge(graph, 1)
+
+    engine, budget = search_distance_from_edge(
+        graph, profiles, seed, budget=DistanceBudget(max_expansions=10**6)
+    )
+    # The oracle applies no budget, no keep-best, no dominance and no ordering.
+    # It shares the evaluation -- that evaluation is the definition of the
+    # objective -- but it shares no pruning key, because it prunes nothing.
+    # Agreement is therefore evidence about the search, not a tautology.
+    reference = exhaustive_routes(graph, profiles, seed, max_paths=5000)
+    assert not budget.exhausted
+    assert engine and reference
+    best_reference = max(reference, key=lambda item: item.distance_m)
+    assert engine[0].distance_m == pytest.approx(best_reference.distance_m, abs=1e-9)
+    assert engine[0].edge_ids == best_reference.edge_ids
+    assert brute_force_distance_routes(graph, profiles, seed), "the old name still resolves"
+
+
+def shaped_profiles(graph, elevation_of, way_id: int | None = None):
+    """Profiles whose elevation follows an arbitrary function of chainage.
+
+    ``profiles_for`` gives each way a single grade, which cannot express a rise
+    followed by a descent — the one shape that makes an in-edge start worth
+    anything.
+    """
+    built = {}
+    for edge_id, edge in graph.edges.items():
+        if way_id is not None and edge.osm_way_id != way_id:
+            continue
+        elevations = [elevation_of(sample.chainage_m) for sample in edge.samples]
+        built[edge_id] = build_edge_profile(edge, edge.samples, elevations)
+    return built
+
+
+def rise_then_descent(chainage_m: float, crest_m: float = 150.0) -> float:
+    """+4 % to the crest, then -6 % away from it."""
+    if chainage_m <= crest_m:
+        return 1000.0 + 0.04 * chainage_m
+    return 1000.0 + 0.04 * crest_m - 0.06 * (chainage_m - crest_m)
+
+
+def test_starting_inside_an_edge_can_beat_starting_at_its_node() -> None:
+    """A prefix can cost more than it contributes, and the study must see it.
+
+    The Oisans answer is offset 0 with zero gain everywhere, which is a
+    measurement of that network and not a property of the problem. If the
+    optimiser silently specialised on it — by trusting a monotonicity that does
+    not hold, or by never evaluating a positive offset properly — nothing in the
+    regional run would notice.
+
+    Here the seed rises 4 % for 150 m before descending 6 %. From the node the
+    bicycle spends its 15 km/h climbing and stops on the rise. Started past the
+    crest it keeps every metre of the descent, and the offset wins outright even
+    though the metres before the crest are given up.
+    """
+    edge = way(1, straight(0, 1000), ASPHALT)
+    graph = build_graph(osm(edge), "paved_reference")
+    profiles = shaped_profiles(graph, rise_then_descent)
+    seed = forward_edge(graph, 1)
+
+    study = StartPointStudy(
+        graph, profiles, budget_factory=lambda: DistanceBudget(max_expansions=10**6)
+    )
+    at_node = study.distance_at(seed, 0.0)
+    past_crest = study.distance_at(seed, 150.0)
+    assert at_node is not None and past_crest is not None
+    assert at_node < 200.0, "the climb must stop the bicycle early"
+    assert past_crest > 800.0, "past the crest it should run the whole descent"
+
+    best_offset, gain = study.optimise(seed, 25.0)
+    assert best_offset > 0.0, "the optimum is not at the node"
+    assert gain > 0.0
+    assert gain == pytest.approx(study.distance_at(seed, best_offset) - at_node, abs=1e-9)
+
+
+def test_the_cached_study_returns_exactly_the_uncached_answer() -> None:
+    """Caching is a cost change, not a numerical one.
+
+    The uncached reference is written out in full rather than called, so it
+    cannot inherit a mistake from the implementation it is checking.
+    """
+    edge = way(1, straight(0, 1000), ASPHALT)
+    graph = build_graph(osm(edge), "paved_reference")
+    profiles = shaped_profiles(graph, rise_then_descent)
+    seed = forward_edge(graph, 1)
+
+    def uncached(step_m: float) -> tuple[float, float]:
+        baseline, budget = search_distance_from_edge(
+            graph, profiles, seed, budget=DistanceBudget(max_expansions=10**6), keep_best=1
+        )
+        if budget.exhausted or not baseline:
+            return 0.0, 0.0
+        reference = baseline[0].distance_m
+        best_offset, best_distance = 0.0, reference
+        for offset in start_offsets(profiles[seed], step_m):
+            if offset <= 0:
+                continue
+            try:
+                trim_edge_profile(profiles[seed], offset)
+            except ValueError:
+                continue
+            found, found_budget = search_distance_from_edge(
+                graph,
+                profiles,
+                seed,
+                start_offset_m=offset,
+                budget=DistanceBudget(max_expansions=10**6),
+                keep_best=1,
+            )
+            if found_budget.exhausted or not found:
+                continue
+            if found[0].distance_m > best_distance:
+                best_distance = found[0].distance_m
+                best_offset = offset
+        return best_offset, best_distance - reference
+
+    study = StartPointStudy(
+        graph, profiles, budget_factory=lambda: DistanceBudget(max_expansions=10**6)
+    )
+    for step_m in (100.0, 25.0):
+        expected_offset, expected_gain = uncached(step_m)
+        offset, gain = study.optimise(seed, step_m)
+        assert offset == pytest.approx(expected_offset, abs=1e-9)
+        assert gain == pytest.approx(expected_gain, abs=1e-9)
+
+    # The coarse pass and the fine pass overlap; the second must reuse the first.
+    assert study.cache_hits > 0
+    assert study.searches < study.searches_without_caching([seed], (100.0, 25.0))
+
+
+def test_one_seed_shared_by_many_routes_is_studied_once() -> None:
+    """The regional redundancy, in miniature.
+
+    A whole regional top ten can start on a single edge. The study must charge
+    for that seed once, not once per route that happens to begin there.
+    """
+    edge = way(1, straight(0, 1000), ASPHALT)
+    graph = build_graph(osm(edge), "paved_reference")
+    profiles = shaped_profiles(graph, rise_then_descent)
+    seed = forward_edge(graph, 1)
+    study = StartPointStudy(
+        graph, profiles, budget_factory=lambda: DistanceBudget(max_expansions=10**6)
+    )
+    first = study.optimise(seed, 25.0)
+    after_first = study.searches
+    for _ in range(9):
+        assert study.optimise(seed, 25.0) == first
+    assert study.searches == after_first, "nine repeats must cost no search at all"
+
+
+def fan_graph(branches: int, *, spread: float = 0.0004):
+    """A trunk that fans into ``branches`` descents of decreasing length.
+
+    One seed owns the whole fan, so every route in the ranking comes from it.
+    """
+    trunk = way(1, straight(0, 200), ASPHALT, last_node=21)
+    ways = [trunk]
+    grades = {1: -0.05}
+    for index in range(branches):
+        leg = way(
+            10 + index,
+            straight(200, 900 - 60 * index, lat=45.05 + spread * index),
+            ASPHALT,
+            first_node=21,
+        )
+        leg["geometry"][0] = trunk["geometry"][-1]
+        ways.append(leg)
+        grades[10 + index] = -0.05
+    graph = build_graph(osm(*ways), "paved_reference")
+    return graph, profiles_for(graph, grades)
+
+
+def test_a_per_seed_cap_cannot_produce_the_global_ranking() -> None:
+    """One seed may legitimately own several leading places.
+
+    Ranking the union of each seed's ``keep_best`` routes is the natural way to
+    assemble a Top N and it is wrong: the fan below has a single simulable seed
+    whose six branches are all genuine routes of different lengths, so a cap of
+    two hides four of them. The failure is silent — the shortened ranking looks
+    exactly like a complete one.
+    """
+    graph, profiles = fan_graph(6)
+    seeds = sorted(edge_id for edge_id, item in profiles.items() if item.simulable)
+    seed = forward_edge(graph, 1)
+
+    capped, _ = search_distance_from_edge(
+        graph, profiles, seed, budget=DistanceBudget(max_expansions=10**6), keep_best=2
+    )
+    assert len(capped) == 2, "the cap is what a per-seed assembly would have returned"
+
+    ranking = global_longest(
+        graph,
+        profiles,
+        seeds,
+        6,
+        budget_factory=lambda: DistanceBudget(max_expansions=10**6),
+    )
+    assert len(ranking) == 6, "all six branches are distinct routes"
+    assert [round(route.distance_m, 6) for route in ranking] == sorted(
+        (round(route.distance_m, 6) for route in ranking), reverse=True
+    )
+
+
+def test_the_global_ranking_equals_ranking_every_route_at_once() -> None:
+    """The running floor must not change the answer, only the memory it needs.
+
+    Checked against the ranking of the complete route set, which is the
+    definition, on a graph with several seeds so the floor actually rises
+    between them.
+    """
+    graph, profiles = fan_graph(5)
+    seeds = sorted(edge_id for edge_id, item in profiles.items() if item.simulable)
+
+    everything: list = []
+    for seed in seeds:
+        found, budget = search_distance_from_edge(
+            graph,
+            profiles,
+            seed,
+            budget=DistanceBudget(max_expansions=10**6),
+            keep_best=None,
+        )
+        assert not budget.exhausted
+        everything.extend(found)
+
+    for limit in (1, 2, 3, 5, 8):
+        reference = distinct_longest(everything, limit)
+        ranking = global_longest(
+            graph,
+            profiles,
+            seeds,
+            limit,
+            budget_factory=lambda: DistanceBudget(max_expansions=10**6),
+        )
+        assert [route.edge_ids for route in ranking] == [route.edge_ids for route in reference]
+        assert [route.distance_m for route in ranking] == [
+            pytest.approx(route.distance_m) for route in reference
+        ]
+
+
+def test_the_running_floor_never_hides_a_route_that_belongs_in_the_ranking() -> None:
+    """Seed order must not matter: the floor is a consequence, not an input."""
+    graph, profiles = fan_graph(5)
+    seeds = sorted(edge_id for edge_id, item in profiles.items() if item.simulable)
+    forwards = global_longest(
+        graph, profiles, seeds, 4, budget_factory=lambda: DistanceBudget(max_expansions=10**6)
+    )
+    backwards = global_longest(
+        graph,
+        profiles,
+        list(reversed(seeds)),
+        4,
+        budget_factory=lambda: DistanceBudget(max_expansions=10**6),
+    )
+    assert [route.edge_ids for route in forwards] == [route.edge_ids for route in backwards]
+
+
+def lap_graph(trunk_grade: float = -0.05, lap_grade: float = 0.02, lap_m: float = 25.0):
+    """A trunk that descends into a closed lap, 25 m out and 25 m back by default.
+
+    Ways 2 and 3 share both endpoints, so together they form a cycle that
+    returns the bicycle to the elevation it entered at. Under the trip rule the
+    lap can be ridden once; without it, as often as the energy allows.
+    """
+    trunk = way(1, straight(0, 200), ASPHALT, last_node=21)
+    out = way(2, straight(200, lap_m), ASPHALT, first_node=21, last_node=22)
+    back = way(3, list(reversed(straight(200, lap_m))), ASPHALT, first_node=22, last_node=21)
+    out["geometry"][0] = trunk["geometry"][-1]
+    back["geometry"][-1] = trunk["geometry"][-1]
+    back["geometry"][0] = out["geometry"][-1]
+    graph = build_graph(osm(trunk, out, back), "paved_reference")
+    return graph, profiles_for(graph, {1: trunk_grade, 2: -lap_grade, 3: lap_grade})
+
+
+def loop_with_exit(
+    *,
+    trunk_grade: float = -0.05,
+    lap_grade: float = 0.02,
+    lap_m: float = 25.0,
+    exit_grade: float = 0.03,
+    exit_m: float = 400.0,
+    second_exit: bool = False,
+):
+    """A trunk into a closed lap, with one or two ways leaving the far node.
+
+    The exit rises, so every extra lap buys 2 x ``lap_m`` of loop and pays for it
+    in the climb afterwards. Where the optimum sits is not obvious, which is the
+    point: it is what the search has to get right.
+    """
+    trunk = way(1, straight(0, 200), ASPHALT, last_node=21)
+    out = way(2, straight(200, lap_m), ASPHALT, first_node=21, last_node=22)
+    back = way(3, list(reversed(straight(200, lap_m))), ASPHALT, first_node=22, last_node=21)
+    out["geometry"][0] = trunk["geometry"][-1]
+    back["geometry"][-1] = trunk["geometry"][-1]
+    back["geometry"][0] = out["geometry"][-1]
+    exit_way = way(4, straight(200 + lap_m, exit_m, lat=45.05 + 0.0006), ASPHALT, first_node=22)
+    exit_way["geometry"][0] = out["geometry"][-1]
+    ways = [trunk, out, back, exit_way]
+    grades = {1: trunk_grade, 2: -lap_grade, 3: lap_grade, 4: exit_grade}
+    if second_exit:
+        other = way(5, straight(200, 600, lat=45.05 - 0.0006), ASPHALT, first_node=21)
+        other["geometry"][0] = trunk["geometry"][-1]
+        ways.append(other)
+        grades[5] = -0.04
+    graph = build_graph(osm(*ways), "paved_reference")
+    return graph, profiles_for(graph, grades)
+
+
+def laps_of(route) -> int:
+    """How many times the most-repeated edge of a route is traversed."""
+    return Counter(route.edge_ids).most_common(1)[0][1]
+
+
+def test_a_flat_loop_is_ridden_a_finite_number_of_times() -> None:
+    """No gravity at all, so every metre is paid for out of kinetic energy."""
+    graph, profiles = lap_graph(lap_grade=0.0)
+    seed = forward_edge(graph, 1)
+    routes, budget = search_distance_from_edge(
+        graph,
+        profiles,
+        seed,
+        budget=DistanceBudget(max_expansions=10**6),
+        keep_best=1,
+        allow_cycles=True,
+    )
+    assert not budget.exhausted, "physics ended the walk, not the budget"
+    assert routes[0].distance_m < 10_000, "a flat loop cannot manufacture distance"
+    assert laps_of(routes[0]) >= 2
+
+
+def test_a_loop_too_steep_to_complete_is_never_lapped() -> None:
+    """Lifting the rule does not make an impassable loop passable.
+
+    The lap runs 600 m down at 4 % and 600 m back up. Coming out of the dip the
+    bicycle has to reclaim the 24 m it just gained plus everything friction took
+    on the way, so it stops on the climb and never returns to the junction.
+    There is no second lap to have, and allowing repetition changes nothing.
+    """
+    graph, profiles = lap_graph(lap_grade=0.04, lap_m=600.0)
+    seed = forward_edge(graph, 1)
+    strict, _ = search_distance_from_edge(
+        graph, profiles, seed, budget=DistanceBudget(max_expansions=10**6), keep_best=1
+    )
+    free, budget = search_distance_from_edge(
+        graph,
+        profiles,
+        seed,
+        budget=DistanceBudget(max_expansions=10**6),
+        keep_best=1,
+        allow_cycles=True,
+    )
+    assert not budget.exhausted
+    assert free[0].distance_m == pytest.approx(strict[0].distance_m, rel=1e-9)
+
+
+def test_the_lateral_envelope_still_binds_once_the_trip_rule_is_gone() -> None:
+    """A stricter lateral limit can never buy a longer coast.
+
+    The graph is identical in both runs; only the admitted lateral acceleration
+    differs. Monotonicity in the limit is the property that would break first if
+    the envelope stopped being applied to repeated traversals of an edge.
+    """
+    graph, profiles = lap_graph()
+    seed = forward_edge(graph, 1)
+    open_loop, _ = search_distance_from_edge(
+        graph,
+        profiles,
+        seed,
+        budget=DistanceBudget(max_expansions=10**6),
+        keep_best=1,
+        allow_cycles=True,
+        lateral_scenario="conservative",
+    )
+    committed, _ = search_distance_from_edge(
+        graph,
+        profiles,
+        seed,
+        budget=DistanceBudget(max_expansions=10**6),
+        keep_best=1,
+        allow_cycles=True,
+        lateral_scenario="committed",
+    )
+    assert open_loop[0].distance_m <= committed[0].distance_m + 1e-9
+
+
+def test_the_moment_of_leaving_a_loop_is_optimised_not_guessed() -> None:
+    """Every extra lap buys loop and pays for it on the climb out.
+
+    The trade-off has no obvious answer, so the assertion is not on a predicted
+    lap count. It is that the engine returns exactly what an oracle that prunes
+    nothing returns — path and distance — on a graph where leaving too early and
+    leaving too late are both wrong.
+    """
+    graph, profiles = loop_with_exit()
+    seed = forward_edge(graph, 1)
+    engine, budget = search_distance_from_edge(
+        graph,
+        profiles,
+        seed,
+        budget=DistanceBudget(max_expansions=10**6),
+        keep_best=1,
+        allow_cycles=True,
+    )
+    reference = exhaustive_routes(graph, profiles, seed, max_paths=50000, allow_cycles=True)
+    assert not budget.exhausted
+    best = max(reference, key=lambda item: item.distance_m)
+    assert engine[0].distance_m == pytest.approx(best.distance_m, abs=1e-9)
+    assert engine[0].edge_ids == best.edge_ids
+    # The winner has to use the loop and then leave it, or the case proves nothing.
+    assert laps_of(engine[0]) >= 2, "the optimum must involve repeating the loop"
+
+
+def test_a_loop_with_two_exits_picks_the_better_one() -> None:
+    """Repetition and choice of exit are optimised together, not in sequence."""
+    graph, profiles = loop_with_exit(second_exit=True)
+    seed = forward_edge(graph, 1)
+    engine, budget = search_distance_from_edge(
+        graph,
+        profiles,
+        seed,
+        budget=DistanceBudget(max_expansions=10**6),
+        keep_best=1,
+        allow_cycles=True,
+    )
+    reference = exhaustive_routes(graph, profiles, seed, max_paths=200000, allow_cycles=True)
+    assert not budget.exhausted
+    best = max(reference, key=lambda item: item.distance_m)
+    assert engine[0].distance_m == pytest.approx(best.distance_m, abs=1e-9)
+    assert engine[0].edge_ids == best.edge_ids
+
+
+def test_no_loop_produces_unbounded_distance() -> None:
+    """The bound that makes the whole mode safe, stated as a test.
+
+    Each configuration is walked with repetition allowed and an enormous
+    budget. Every one terminates on its own, and every distance is finite and
+    modest against the energy available. Windless reference scenario: an
+    environment able to supply energy has no such bound.
+    """
+    for lap_grade in (0.0, 0.005, 0.01, 0.02, 0.03):
+        graph, profiles = lap_graph(lap_grade=lap_grade)
+        seed = forward_edge(graph, 1)
+        routes, budget = search_distance_from_edge(
+            graph,
+            profiles,
+            seed,
+            budget=DistanceBudget(max_expansions=10**6),
+            keep_best=1,
+            allow_cycles=True,
+        )
+        assert not budget.exhausted, f"lap grade {lap_grade} did not terminate on its own"
+        assert math.isfinite(routes[0].distance_m)
+        assert routes[0].distance_m < 50_000
+
+
+def test_lifting_the_trip_rule_changes_the_answer_on_a_lappable_loop() -> None:
+    """The rule is a definition, and it is worth what it costs.
+
+    Both runs use the same engine, the same data and the same physics; only the
+    definition of a trip differs. The gap is the whole reason the rule cannot be
+    dropped quietly: it more than doubles the reported distance without any
+    physical claim changing.
+    """
+    graph, profiles = lap_graph()
+    seed = forward_edge(graph, 1)
+
+    once_only, budget_once = search_distance_from_edge(
+        graph, profiles, seed, budget=DistanceBudget(max_expansions=10**6), keep_best=1
+    )
+    lapping, budget_lapping = search_distance_from_edge(
+        graph,
+        profiles,
+        seed,
+        budget=DistanceBudget(max_expansions=10**6),
+        keep_best=1,
+        allow_cycles=True,
+    )
+    assert not budget_once.exhausted and not budget_lapping.exhausted
+    assert lapping[0].distance_m > 2 * once_only[0].distance_m
+    # Under the rule each way piece appears once; without it the lap repeats.
+    assert len(set(once_only[0].edge_ids)) == len(once_only[0].edge_ids)
+    assert len(set(lapping[0].edge_ids)) < len(lapping[0].edge_ids)
+
+
+def test_lapping_stops_itself_without_needing_the_rule() -> None:
+    """Nothing but physics bounds the lapping search, and that is enough.
+
+    Every lap returns the bicycle to the same elevation with strictly less
+    energy, so the number of laps is finite. The search terminates on its own
+    budget untouched — the route is not cut off, it runs out of speed.
+
+    This is the windless reference scenario. Under a wind able to supply energy
+    the decay argument fails and this mode has no termination guarantee.
+    """
+    graph, profiles = lap_graph()
+    seed = forward_edge(graph, 1)
+    routes, budget = search_distance_from_edge(
+        graph,
+        profiles,
+        seed,
+        budget=DistanceBudget(max_expansions=10**6),
+        keep_best=1,
+        allow_cycles=True,
+    )
+    assert not budget.exhausted, "the walk ended on its own, not on the budget"
+    laps = Counter(routes[0].edge_ids).most_common(1)[0][1]
+    assert laps >= 2, "the loop must actually be ridden more than once"
+    assert routes[0].stop_reason in {"route_end", "definitive_stop"}
+
+
+def test_the_flag_changes_the_problem_not_the_engine() -> None:
+    """On a graph with no cycle to ride, the two modes must agree exactly."""
+    graph, profiles = fan_graph(4)
+    seeds = sorted(edge_id for edge_id, item in profiles.items() if item.simulable)
+    for seed in seeds:
+        strict, _ = search_distance_from_edge(
+            graph, profiles, seed, budget=DistanceBudget(max_expansions=10**6), keep_best=1
+        )
+        free, _ = search_distance_from_edge(
+            graph,
+            profiles,
+            seed,
+            budget=DistanceBudget(max_expansions=10**6),
+            keep_best=1,
+            allow_cycles=True,
+        )
+        assert [route.edge_ids for route in strict] == [route.edge_ids for route in free]
+        assert [route.distance_m for route in strict] == [
+            pytest.approx(route.distance_m) for route in free
+        ]
+
+
+def test_the_engine_still_matches_the_oracle_once_cycles_are_allowed() -> None:
+    """The corrected pruning must survive the change of semantics.
+
+    Lifting the rule multiplies the branching factor, which is exactly the
+    situation in which a pruning defect would reappear unnoticed.
+    """
+    graph, profiles = lap_graph()
+    seed = forward_edge(graph, 1)
+    engine, budget = search_distance_from_edge(
+        graph,
+        profiles,
+        seed,
+        budget=DistanceBudget(max_expansions=10**6),
+        keep_best=1,
+        allow_cycles=True,
+    )
+    reference = exhaustive_routes(graph, profiles, seed, max_paths=20000, allow_cycles=True)
+    assert not budget.exhausted
+    assert engine and reference
+    best = max(reference, key=lambda item: item.distance_m)
+    assert engine[0].distance_m == pytest.approx(best.distance_m, abs=1e-9)
+    assert engine[0].edge_ids == best.edge_ids
+
+
+def test_the_oracle_refuses_to_truncate_rather_than_report_a_smaller_optimum() -> None:
+    """A silently truncated oracle would be worse than no oracle at all.
+
+    Truncation would make the oracle report an optimum no larger than the true
+    one, so an engine defect could hide behind a short enumeration. The cap is
+    a guard against accidental use on a large subgraph, never a sampling knob.
+    """
+    trunk = way(1, straight(0, 300), ASPHALT, last_node=21)
+    left = way(2, straight(300, 400), ASPHALT, first_node=21)
+    right = way(3, straight(300, 500, lat=45.05 + 0.0004), ASPHALT, first_node=21)
+    left["geometry"][0] = right["geometry"][0] = trunk["geometry"][-1]
+    graph = build_graph(osm(trunk, left, right), "paved_reference")
+    profiles = profiles_for(graph, {1: -0.03, 2: -0.02, 3: -0.02})
+    seed = forward_edge(graph, 1)
+
+    assert len(exhaustive_routes(graph, profiles, seed)) > 1
+    with pytest.raises(RuntimeError, match="exceeded 1 paths"):
+        exhaustive_routes(graph, profiles, seed, max_paths=1)
+
+
+# --------------------------------------------------------------------------
+# starting inside an edge
+# --------------------------------------------------------------------------
+
+
+def test_trimming_an_edge_moves_the_start_without_changing_what_follows() -> None:
+    graph = build_graph(osm(way(1, straight(0, 500), ASPHALT)), "paved_reference")
+    profiles = profiles_for(graph, {1: -0.03})
+    edge_id = forward_edge(graph, 1)
+    whole = profiles[edge_id]
+    trimmed = trim_edge_profile(whole, 100.0)
+    assert trimmed.horizontal_length_m < whole.horizontal_length_m
+    assert trimmed.end_elevation_m == whole.end_elevation_m
+    assert trimmed.start_elevation_m < whole.start_elevation_m
+    with pytest.raises(ValueError, match="whole edge"):
+        trim_edge_profile(whole, 10_000.0)
+
+
+def test_trimming_removes_what_was_asked_and_rebases_the_bends() -> None:
+    """An offset that moves the start by nothing is not an offset.
+
+    The loop used to break one segment late, so the smallest offset that
+    start_offsets can produce removed 0.00 m while the caller went on reporting
+    a distance gain from it. And the bends kept the untrimmed edge's chainage
+    frame, which displaced the whole speed envelope of every in-edge start by
+    the size of the trim.
+    """
+    graph = build_graph(osm(way(1, arc(0, 60, 60.0, 150.0, 40), ASPHALT)), "paved_reference")
+    profiles = profiles_for(graph, {1: -0.04})
+    whole = profiles[forward_edge(graph, 1)]
+    assert len(whole.segment_travelled_m) > 4
+    assert whole.bends
+
+    first = whole.segment_travelled_m[0]
+    trimmed = trim_edge_profile(whole, first)
+    removed = math.fsum(whole.segment_travelled_m) - math.fsum(trimmed.segment_travelled_m)
+    assert removed == pytest.approx(first, abs=1e-6), "the first segment must actually go"
+    assert len(trimmed.segment_travelled_m) == len(whole.segment_travelled_m) - 1
+
+    # Bends are rebased into the trimmed frame, never left on the old one.
+    assert trimmed.bends
+    assert min(bend.chainage_m for bend in trimmed.bends) >= -1e-9
+    assert max(bend.chainage_m for bend in trimmed.bends) <= trimmed.horizontal_length_m + 1e-6
+    shift = max(bend.chainage_m for bend in whole.bends) - max(
+        bend.chainage_m for bend in trimmed.bends
+    )
+    assert shift > 0, "the envelope must move with the start"
+
+
+def test_starting_inside_an_edge_cannot_beat_starting_at_its_head_on_one_edge() -> None:
+    # On a single descending edge, moving the start forward only removes road.
+    graph = build_graph(osm(way(1, straight(0, 1200), ASPHALT)), "paved_reference")
+    profiles = profiles_for(graph, {1: -0.02})
+    seed = forward_edge(graph, 1)
+    head = longest(graph, profiles, seed)
+    inside = longest(graph, profiles, seed, start_offset_m=300.0)
+    assert inside.distance_m < head.distance_m
+
+
+def test_starting_inside_an_edge_can_help_when_the_head_wastes_energy() -> None:
+    """Node seeding is an approximation, and this is where it costs the most.
+
+    A 250 m rise at 1 % exhausts the starting energy after about 47 m, so a run
+    seeded at the node never reaches the descent beyond it. Seeded 225 m in, the
+    bicycle clears the last 25 m of rise and collects the whole descent. The
+    ranking is therefore not invariant to where a run is allowed to begin.
+    """
+    climb = way(1, straight(0, 250), ASPHALT, last_node=18)
+    descent = way(2, straight(250, 1500), ASPHALT, first_node=18)
+    descent["geometry"][0] = climb["geometry"][-1]
+    graph = build_graph(osm(climb, descent), "paved_reference")
+    profiles = profiles_for(graph, {1: 0.01, 2: -0.03})
+    seed = forward_edge(graph, 1)
+    head = longest(graph, profiles, seed)
+    inside = longest(graph, profiles, seed, start_offset_m=225.0)
+    assert head.distance_m < 100, "the rise alone exhausts the initial energy"
+    assert inside.distance_m > 1000, "starting past the rise reaches the descent"
+
+
+def test_distinct_longest_drops_sub_paths_of_a_kept_route() -> None:
+    graph = build_graph(osm(way(1, straight(0, 800), ASPHALT)), "paved_reference")
+    profiles = profiles_for(graph, {1: -0.03})
+    seed = forward_edge(graph, 1)
+    whole = evaluate_distance_route(graph, profiles, [seed], seed_edge_id=seed)
+    kept = distinct_longest([whole, whole], 5)
+    assert len(kept) == 1
+
+
+def test_bend_limits_are_reported_in_travelled_distance() -> None:
+    graph = build_graph(osm(way(1, arc(0, 30, 30.0, 120.0, 24), ASPHALT)), "paved_reference")
+    profiles = profiles_for(graph, {1: -0.05})
+    profile = profiles[forward_edge(graph, 1)]
+    limits = edge_bend_limits(profile, "nominal")
+    assert limits
+    travelled = math.fsum(profile.segment_travelled_m)
+    assert all(0.0 <= position <= travelled + 1e-6 for position, _ in limits)
+    tightest = min(speed for _, speed in limits)
+    assert tightest == pytest.approx(
+        permitted_speed_m_s(
+            min(bend.radius_m for bend in profile.bends),
+            LATERAL_LIMIT_SCENARIOS_M_S2["nominal"],
+        ),
+        rel=1e-9,
+    )
+
+
+def test_a_heavier_rider_does_not_change_the_restart_threshold() -> None:
+    # Mass cancels from -tan(theta) > Crr, so the threshold is mass-independent.
+    heavy = BicycleSystem(rider_mass_kg=110.0)
+    assert can_restart_from_rest(-0.0061, CRR, heavy)
+    assert not can_restart_from_rest(-0.0059, CRR, heavy)
