@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Roue libre — audit des résultats régionaux</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <noscript>
+      <p class="warn">
+        Cette page assemble ses chiffres à partir de <code>data/phase3.js</code>.
+        Sans JavaScript elle ne peut rien afficher, et rien n'y est écrit en dur.
+      </p>
+    </noscript>
+
+    <header>
+      <p class="eyebrow">Question étudiée</p>
+      <h1 id="question">…</h1>
+      <p class="scope">
+        <span class="phase" id="phase">…</span>
+        <span id="scope"></span>
+      </p>
+      <p class="provenance">
+        Calcul&nbsp;: commit <code id="commit">…</code> · départ à
+        <span id="v0"></span>&nbsp;km/h · profil altimétrique
+        <code id="method"></code>
+      </p>
+    </header>
+
+    <main>
+      <section id="legend-section">
+        <h2>Lire un résultat</h2>
+        <p class="lede">
+          Une distance ne veut rien dire sans la raison qui a terminé le trajet.
+          Seul un arrêt physique mesure la distance de roue libre&nbsp;; les
+          autres statuts donnent une <strong>borne inférieure</strong> et sont
+          écrits <code>&gt;=</code>.
+        </p>
+        <dl id="legend"></dl>
+      </section>
+
+      <section id="variants-section">
+        <h2>Variantes</h2>
+        <p class="lede">
+          Deux classes de surface, deux définitions de ce qu'est un trajet.
+          Quatre réponses différentes&nbsp;: elles ne sont pas comparables sans
+          leur définition.
+        </p>
+        <div id="variant-tabs" class="tabs" role="tablist"></div>
+        <div id="variant-summary" class="summary-grid"></div>
+      </section>
+
+      <section id="leader-section">
+        <h2>Meilleur candidat</h2>
+        <div id="leader"></div>
+      </section>
+
+      <section id="figures-section">
+        <h2>Profils</h2>
+        <div id="figures" class="figures"></div>
+      </section>
+
+      <section id="ranking-section">
+        <h2>Classement</h2>
+        <p class="lede" id="ranking-note"></p>
+        <div class="table-scroll">
+          <table id="ranking">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Distance</th>
+                <th>Terminaison</th>
+                <th>Durée</th>
+                <th>V moy</th>
+                <th>V max</th>
+                <th>V finale</th>
+                <th>Δz net</th>
+                <th>Remontée</th>
+                <th>Freinage</th>
+                <th>Virages</th>
+                <th>Arêtes</th>
+                <th>Voies OSM</th>
+                <th>Surface inférée</th>
+                <th>Itinéraire</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        Cette page est un <strong>consommateur</strong> des sorties du moteur.
+        Tous les chiffres viennent de <code>outputs/phase3/variants.json</code>,
+        produit par <code>scripts/phase3_variants.py</code>. Aucune valeur n'est
+        recopiée à la main.
+      </p>
+      <p class="attribution">
+        Géométrie et attributs routiers&nbsp;: © OpenStreetMap contributors, ODbL 1.0.
+        Altitudes&nbsp;: © IGN — RGE ALTI® via Géoplateforme, Licence Ouverte 2.0.
+      </p>
+    </footer>
+
+    <script src="data/phase3.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

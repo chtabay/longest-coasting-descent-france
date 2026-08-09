@@ -159,6 +159,12 @@ def main() -> None:
     parser.add_argument("--elevations", default=".cache/phase2/elevations.json")
     parser.add_argument("--candidates", default="outputs/phase3/candidate_routes.csv")
     parser.add_argument("--output", default="outputs/phase3/audit")
+    parser.add_argument(
+        "--edge-ids",
+        default="",
+        help="semicolon-separated edge ids to audit instead of a ranked route",
+    )
+    parser.add_argument("--label", default="", help="file stem when --edge-ids is used")
     arguments = parser.parse_args()
 
     output = Path(arguments.output)
@@ -168,15 +174,18 @@ def main() -> None:
     graph = build_graph(osm, arguments.scenario)
     profiles = build_profiles(graph, store)
 
-    with Path(arguments.candidates).open(encoding="utf-8") as handle:
-        rows = [
-            row
-            for row in csv.DictReader(handle)
-            if row["scenario"] == arguments.scenario and int(row["rank"]) == arguments.rank
-        ]
-    if not rows:
-        raise SystemExit(f"no rank {arguments.rank} row for {arguments.scenario}")
-    edge_ids = rows[0]["edge_ids"].split(";")
+    if arguments.edge_ids:
+        edge_ids = [item for item in arguments.edge_ids.split(";") if item]
+    else:
+        with Path(arguments.candidates).open(encoding="utf-8") as handle:
+            rows = [
+                row
+                for row in csv.DictReader(handle)
+                if row["scenario"] == arguments.scenario and int(row["rank"]) == arguments.rank
+            ]
+        if not rows:
+            raise SystemExit(f"no rank {arguments.rank} row for {arguments.scenario}")
+        edge_ids = rows[0]["edge_ids"].split(";")
 
     bicycle = BicycleSystem()
     environment = Environment()
@@ -232,9 +241,8 @@ def main() -> None:
         )
         offset += length
 
-    with (output / f"{arguments.scenario}_rank{arguments.rank}_edges.csv").open(
-        "w", encoding="utf-8", newline="\n"
-    ) as handle:
+    stem = arguments.label or f"{arguments.scenario}_rank{arguments.rank}"
+    with (output / f"{stem}_edges.csv").open("w", encoding="utf-8", newline="\n") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(edge_rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(edge_rows)
@@ -289,9 +297,7 @@ def main() -> None:
                 else "",
             }
         )
-    with (output / f"{arguments.scenario}_rank{arguments.rank}_bends.csv").open(
-        "w", encoding="utf-8", newline="\n"
-    ) as handle:
+    with (output / f"{stem}_bends.csv").open("w", encoding="utf-8", newline="\n") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(bend_rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(bend_rows)
@@ -310,7 +316,6 @@ def main() -> None:
             elevation += length * math.sin(math.atan(grade))
             elevation_xs.append(travelled)
             elevation_ys.append(elevation)
-    stem = f"{arguments.scenario}_rank{arguments.rank}"
     svg_polyline(
         output / f"{stem}_elevation.svg",
         elevation_xs,
