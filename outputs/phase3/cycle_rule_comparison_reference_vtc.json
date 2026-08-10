@@ -1,0 +1,28 @@
+{
+  "best_cycles_allowed_m": 6453.3,
+  "best_cycles_allowed_repeats_an_edge": true,
+  "best_once_per_way_piece_m": 6291.2,
+  "caveat": "a seed whose budget was exhausted yields a lower bound on its own answer, not its answer; the lapping run's figure is therefore a lower bound whenever seeds_with_exhausted_budget is non-zero",
+  "elevation_method": "raw_25m",
+  "max_expansions_per_seed": 200000,
+  "relative_change": 0.0258,
+  "runs": [
+    {
+      "allow_cycles": false,
+      "expansions": 155649,
+      "runtime_s": 2223.0,
+      "seeds": 3851,
+      "seeds_with_exhausted_budget": 0
+    },
+    {
+      "allow_cycles": true,
+      "expansions": 373854,
+      "runtime_s": 68962.4,
+      "seeds": 3851,
+      "seeds_with_exhausted_budget": 0
+    }
+  ],
+  "same_route": false,
+  "scenario": "reference_vtc",
+  "wind": "none (reference environment)"
+}

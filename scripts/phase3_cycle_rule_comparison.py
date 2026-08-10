@@ -68,6 +68,7 @@ def rank(
     profiles: dict[str, EdgeProfile],
     *,
     allow_cycles: bool,
+    workers: int = 1,
 ) -> tuple[list[DistanceRoute], dict[str, object]]:
     seeds = [edge_id for edge_id, item in profiles.items() if item.simulable]
     expansions = 0
@@ -87,6 +88,7 @@ def rank(
         TOP_N,
         budget_factory=lambda: DistanceBudget(max_expansions=MAX_EXPANSIONS),
         on_seed=account,
+        workers=workers,
         allow_cycles=allow_cycles,
     )
     return routes, {
@@ -109,6 +111,7 @@ def main() -> None:
     parser.add_argument("--overpass-cache", default=".cache/phase1b-live/oisans-overpass.json")
     parser.add_argument("--elevations", default=".cache/phase2/elevations.json")
     parser.add_argument("--output", default="outputs/phase3")
+    parser.add_argument("--workers", type=int, default=1)
     arguments = parser.parse_args()
 
     output = Path(arguments.output)
@@ -123,7 +126,7 @@ def main() -> None:
     summaries: list[dict[str, object]] = []
     tops: dict[bool, list[DistanceRoute]] = {}
     for allow_cycles in (False, True):
-        routes, stats = rank(graph, profiles, allow_cycles=allow_cycles)
+        routes, stats = rank(graph, profiles, allow_cycles=allow_cycles, workers=arguments.workers)
         tops[allow_cycles] = routes
         summaries.append(stats)
         label = "cycles_allowed" if allow_cycles else "once_per_way_piece"

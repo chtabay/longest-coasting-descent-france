@@ -779,6 +779,34 @@ def distinct_longest(routes: Sequence[DistanceRoute], limit: int) -> list[Distan
     return kept
 
 
+# --- one worker process holds the graph, and the seeds come to it ------------
+#
+# The walk is embarrassingly parallel: `finished_paths` is a pure function of
+# (graph, profiles, seed), and no seed can observe another. What is not free is
+# shipping the graph — so it is sent once per worker as an initialiser argument
+# (15.5 MB, 0.22 s to load for the Oisans) rather than once per task.
+
+_WORKER: dict[str, object] = {}
+
+
+def _load_worker(graph: RoutableGraph, profiles: dict[str, EdgeProfile]) -> None:
+    _WORKER["graph"] = graph
+    _WORKER["profiles"] = profiles
+
+
+def _walk_one(task: tuple[str, float, int, int, dict]) -> tuple[list, int, bool]:
+    seed, floor, max_expansions, max_edges, kwargs = task
+    finished, budget = finished_paths(
+        _WORKER["graph"],  # type: ignore[arg-type]
+        _WORKER["profiles"],  # type: ignore[arg-type]
+        seed,
+        budget=DistanceBudget(max_expansions=max_expansions, max_edges_per_route=max_edges),
+        min_distance_m=floor,
+        **kwargs,
+    )
+    return finished, budget.expansions, budget.exhausted
+
+
 def _ranked_candidates(
     candidates: Sequence[tuple[float, str, str, list[str]]],
     limit: int,
@@ -806,6 +834,8 @@ def global_longest(
     *,
     budget_factory: Callable[[], DistanceBudget] | None = None,
     on_seed: Callable[[str, DistanceBudget], None] | None = None,
+    workers: int = 1,
+    chunk_size: int = 8,
     **search_kwargs,
 ) -> list[DistanceRoute]:
     """The exact global ranking, without holding every route of every seed.
@@ -825,29 +855,92 @@ def global_longest(
     The one thing the floor must not do is start above the answer, so it starts
     at whatever the caller asked for (zero by default) and is raised only by
     routes actually found.
+
+    ``workers`` spreads the walk over processes. It changes the runtime and
+    nothing else, and the reason it is safe is worth stating rather than
+    trusting.
+
+    Seeds are dispatched in chunks and their results collected **in submission
+    order**, so the pool is assembled exactly as the sequential loop assembles
+    it. That matters because :func:`_ranked_candidates` sorts by distance alone
+    and Python's sort is stable: two routes of identical length are separated by
+    their position in the pool, so a pool built in arrival order could rank ties
+    differently from one built in seed order.
+
+    The floor is then held fixed for the whole parallel run rather than rising
+    seed by seed, which makes it *lower* than the sequential floor, never higher.
+    A lower floor records more routes, never fewer, and the extra ones are all
+    shorter than the final ranking's last entry — they can neither enter the
+    ranking nor eliminate a member of it, since elimination only ever comes from
+    a longer route. The ranking is therefore identical, and a test asserts it.
     """
     floor = float(search_kwargs.pop("min_distance_m", 0.0))
     pool: list[tuple[float, str, str, list[str]]] = []
-    for seed in seeds:
-        budget = budget_factory() if budget_factory is not None else DistanceBudget()
-        found, budget = finished_paths(
-            graph,
-            profiles,
-            seed,
-            budget=budget,
-            min_distance_m=floor,
-            **search_kwargs,
-        )
+    template = budget_factory() if budget_factory is not None else DistanceBudget()
+    seeds = list(seeds)
+
+    def absorb(seed: str, found: list, expansions: int, exhausted: bool) -> None:
+        nonlocal floor, pool
         if on_seed is not None:
-            on_seed(seed, budget)
+            on_seed(seed, DistanceBudget(expansions=expansions, exhausted=exhausted))
         if not found:
-            continue
+            return
         pool.extend((distance, seed, termination, path) for distance, termination, path in found)
+
+    def tighten() -> None:
+        nonlocal floor, pool
         ranking = _ranked_candidates(pool, limit)
         if len(ranking) >= limit:
             floor = max(floor, ranking[-1][0])
             # Anything under the new floor can no longer reach the ranking.
             pool = [candidate for candidate in pool if candidate[0] >= floor]
+
+    if workers > 1 and len(seeds) > 1:
+        import concurrent.futures
+
+        with concurrent.futures.ProcessPoolExecutor(
+            max_workers=workers,
+            initializer=_load_worker,
+            initargs=(graph, profiles),
+        ) as pool_executor:
+            # Every seed is submitted at once rather than batch by batch. A
+            # batch boundary is a barrier, and the walk's cost per seed is wildly
+            # uneven — a handful of seeds dominate an otherwise trivial region —
+            # so every barrier idles most of the pool waiting for one straggler.
+            #
+            # The floor is therefore fixed for the whole run instead of rising
+            # between batches. That records more routes, never fewer, and the
+            # extra ones are shorter than the ranking's last entry: they can
+            # neither enter it nor eliminate a member of it. The pool stays small
+            # in practice — the entire paved region finishes 6 554 routes.
+            tasks = [
+                (
+                    seed,
+                    floor,
+                    template.max_expansions,
+                    template.max_edges_per_route,
+                    search_kwargs,
+                )
+                for seed in seeds
+            ]
+            # `map` yields in submission order, which is what keeps the pool
+            # identical to the one the sequential loop builds.
+            for seed, (found, expansions, exhausted) in zip(
+                seeds, pool_executor.map(_walk_one, tasks, chunksize=chunk_size)
+            ):
+                absorb(seed, found, expansions, exhausted)
+    else:
+        for seed in seeds:
+            found, budget = finished_paths(
+                graph,
+                profiles,
+                seed,
+                budget=budget_factory() if budget_factory is not None else DistanceBudget(),
+                min_distance_m=floor,
+                **search_kwargs,
+            )
+            absorb(seed, found, budget.expansions, budget.exhausted)
+            tighten()
     evaluation_kwargs = {
         key: value
         for key, value in search_kwargs.items()

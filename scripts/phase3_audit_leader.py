@@ -34,6 +34,7 @@ from coastdown.elevation_store import elevations_for, load_store
 from coastdown.graph import RoutableGraph, build_graph
 from coastdown.models import BicycleSystem, Environment
 from coastdown.search import EdgeProfile, build_edge_profile
+from coastdown.structures import build_with_reconstructed_structures
 from coastdown.textio import write_text_lf
 
 PRODUCTION_METHOD = "raw_25m"
@@ -165,14 +166,24 @@ def main() -> None:
         help="semicolon-separated edge ids to audit instead of a ranked route",
     )
     parser.add_argument("--label", default="", help="file stem when --edge-ids is used")
+    parser.add_argument(
+        "--reconstructed",
+        action="store_true",
+        help="audit on the Phase A2 graph, where short structures carry a roadway",
+    )
     arguments = parser.parse_args()
 
     output = Path(arguments.output)
     output.mkdir(parents=True, exist_ok=True)
     osm = json.loads(Path(arguments.overpass_cache).read_bytes())
     store = load_store(arguments.elevations)
-    graph = build_graph(osm, arguments.scenario)
-    profiles = build_profiles(graph, store)
+    if arguments.reconstructed:
+        graph, profiles, _, _ = build_with_reconstructed_structures(
+            osm, arguments.scenario, store, method=PRODUCTION_METHOD
+        )
+    else:
+        graph = build_graph(osm, arguments.scenario)
+        profiles = build_profiles(graph, store)
 
     if arguments.edge_ids:
         edge_ids = [item for item in arguments.edge_ids.split(";") if item]

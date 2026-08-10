@@ -42,12 +42,24 @@
     return node;
   }
 
+  var GRAPH_LABEL = {
+    reconstructed: "graphe courant",
+    severed: "graphe périmé",
+  };
+
   function variantName(variant) {
     return (
       (variant.scenario === "paved_reference" ? "Revêtu (référence)" : "VTC (référence)") +
       " · " +
       (variant.allow_cycles ? "répétition autorisée" : "une voie une seule fois")
     );
+  }
+
+  function graphTag(variant) {
+    var kind = variant.graph || "severed";
+    var node = el("span", "graph-tag " + kind, GRAPH_LABEL[kind] || kind);
+    node.title = variant.graph_note || "";
+    return node;
   }
 
   /* ---- header ---- */
@@ -78,7 +90,9 @@
     button.type = "button";
     button.setAttribute("role", "tab");
     button.appendChild(document.createTextNode(variantName(variant)));
-    var rule = el("span", "rule", variant.leader.distance_label);
+    var rule = el("span", "rule");
+    rule.appendChild(document.createTextNode(variant.leader.distance_label + " "));
+    rule.appendChild(graphTag(variant));
     button.appendChild(rule);
     button.addEventListener("click", function () {
       select(index);
@@ -90,7 +104,10 @@
     summary.innerHTML = "";
     data.variants.forEach(function (variant, index) {
       var card = el("div", "summary-card" + (index === current ? " current" : ""));
-      card.appendChild(el("h3", null, variantName(variant)));
+      var heading = el("h3");
+      heading.appendChild(document.createTextNode(variantName(variant) + " "));
+      heading.appendChild(graphTag(variant));
+      card.appendChild(heading);
       card.appendChild(el("div", "distance", variant.leader.distance_label));
       card.appendChild(badge(variant.leader.termination_status));
       summary.appendChild(card);
@@ -129,9 +146,13 @@
     var headline = el("div", "headline");
     headline.appendChild(el("span", "distance", leader.distance_label));
     headline.appendChild(badge(leader.termination_status));
+    headline.appendChild(graphTag(variant));
     host.appendChild(headline);
 
     host.appendChild(el("p", "detail", leader.termination_detail));
+    if (variant.graph_note) {
+      host.appendChild(el("p", "detail", "Graphe : " + variant.graph_note));
+    }
 
     var metrics = el("div", "metrics");
     METRICS.forEach(function (pair) {

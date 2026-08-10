@@ -141,6 +141,28 @@ section {
   background: var(--budget-bg);
 }
 
+.graph-tag {
+  display: inline-block;
+  border-radius: 3px;
+  padding: 0.02rem 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+  border: 1px solid currentColor;
+}
+
+.graph-tag.reconstructed {
+  color: var(--accent);
+}
+
+.graph-tag.severed {
+  color: var(--muted);
+  opacity: 0.85;
+}
+
 #legend dl,
 #legend {
   display: grid;

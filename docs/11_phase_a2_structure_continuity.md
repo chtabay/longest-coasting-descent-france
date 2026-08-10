@@ -1,7 +1,19 @@
 # Phase A2 — Graph continuity across structures
 
-**Status: mission statement only. Nothing here is implemented, and the Phase 1B rule is
-unchanged until this phase is opened deliberately.**
+**Status: case 1 implemented and measured. Cases 2 and 3 remain open. The Phase 1B rule is
+unchanged and no terrain sample is read on any structure.**
+
+Case 1 result, on the same region with the same physics and the same engine
+(`outputs/phase_a2/regional_before_after.json`):
+
+| | `paved_reference` | `reference_vtc` |
+|---|---|---|
+| Leader | 4 494.8 m -> **4 535.7 m** | >= 6 291.2 m -> **8 453.8 m** |
+| Termination | physical stop -> physical stop | **model gap -> physical stop** |
+| Physical stops in the top 20 | **13 -> 20** | **10 -> 20** |
+
+Not one route in either published ranking is a lower bound any more. The 8.3 m D 211 underpass
+alone was hiding 2 162.6 m.
 
 ## Why this phase exists
 
@@ -44,6 +56,35 @@ Ten of the twenty VTC routes and seven of the twenty paved routes end the same w
 region, **every** truncation is a structure or an otherwise dropped way; not one is the edge of the
 download. That is the argument for this phase: the largest error term in the current results is not
 the search, the physics or the integrator. It is 10.87 km of road that the model removed.
+
+### The truncations are not marginal, and this is the measurement that decides the priority
+
+Across the 40 ranked routes, **17 end as `model_gap` and all 17 are still rolling** — final speeds
+from 11.0 to 56.8 km/h, median 56.8. What blocks them:
+
+| cause | routes |
+|---|---:|
+| structure with `layer` ≠ 0 | 11 |
+| bridge | 4 |
+| a residential way dropped for a non-structure reason | 2 |
+
+**Fifteen of seventeen are structures.**
+
+The VTC leader is not cut on a flat. It is cut on a **−9.5 % mean grade over its last 984 m**, with
+the final edge at **−13.4 %**, accelerating, at 56.8 km/h. Continuing that run with the energy it
+carries:
+
+| if the road beyond the underpass were | it would travel |
+|---|---|
+| dead flat | **+383 m**, then stop |
+| −2 % or steeper | **it never stops** — equilibrium speed, still rolling past 20 km |
+
+The D 211 descends at −9.5 % there. So `>= 6291.2 m` does not mean "6 291 and a little": that route
+is **not energy-limited at all**, and its true distance is plausibly kilometres greater. The `>=`
+carries an unknown order of magnitude, not a rounding allowance.
+
+All of it turns on **8.3 m** of missing roadway profile between two well-surveyed stretches of
+secondary road — case 1 below, the easiest of the three.
 
 ## Objective
 
