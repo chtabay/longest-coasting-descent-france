@@ -743,6 +743,61 @@ def test_the_global_ranking_equals_ranking_every_route_at_once() -> None:
         ]
 
 
+def test_spreading_the_walk_over_processes_changes_nothing_but_the_runtime() -> None:
+    """Parallelism must be invisible in the answer, including in ties.
+
+    The risk is not that a worker computes a different distance — the walk is a
+    pure function of (graph, profiles, seed). It is that results arrive in a
+    different order, and :func:`_ranked_candidates` sorts by distance alone with
+    a stable sort, so two routes of equal length are separated by their position
+    in the pool. The fan graph below is built so that several branches tie
+    exactly, which is precisely the case a sloppy implementation gets wrong.
+    """
+    graph, profiles = fan_graph(6)
+    seeds = sorted(edge_id for edge_id, item in profiles.items() if item.simulable)
+    for limit in (1, 3, 6):
+        serial = global_longest(
+            graph,
+            profiles,
+            seeds,
+            limit,
+            budget_factory=lambda: DistanceBudget(max_expansions=10**6),
+        )
+        spread = global_longest(
+            graph,
+            profiles,
+            seeds,
+            limit,
+            budget_factory=lambda: DistanceBudget(max_expansions=10**6),
+            workers=2,
+            chunk_size=1,
+        )
+        assert [route.edge_ids for route in spread] == [route.edge_ids for route in serial]
+        assert [route.distance_m for route in spread] == [
+            pytest.approx(route.distance_m) for route in serial
+        ]
+
+
+def test_the_parallel_walk_still_reports_every_seed_and_its_budget() -> None:
+    """Per-seed accounting must survive the crossing between processes."""
+    graph, profiles = fan_graph(4)
+    seeds = sorted(edge_id for edge_id, item in profiles.items() if item.simulable)
+    seen: list[tuple[str, int, bool]] = []
+    global_longest(
+        graph,
+        profiles,
+        seeds,
+        3,
+        budget_factory=lambda: DistanceBudget(max_expansions=10**6),
+        on_seed=lambda seed, budget: seen.append((seed, budget.expansions, budget.exhausted)),
+        workers=2,
+        chunk_size=1,
+    )
+    assert [item[0] for item in seen] == seeds, "every seed, once, in order"
+    assert all(expansions > 0 for _, expansions, _ in seen)
+    assert not any(exhausted for _, _, exhausted in seen)
+
+
 def test_the_running_floor_never_hides_a_route_that_belongs_in_the_ranking() -> None:
     """Seed order must not matter: the floor is a consequence, not an input."""
     graph, profiles = fan_graph(5)

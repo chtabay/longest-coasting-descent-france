@@ -81,6 +81,7 @@ def run_search(
     graph: RoutableGraph,
     profiles: dict[str, EdgeProfile],
     limit: int = TOP_N,
+    workers: int = 1,
     **kwargs,
 ) -> tuple[list[DistanceRoute], dict[str, int]]:
     """The exact regional ranking.
@@ -107,6 +108,7 @@ def run_search(
         limit,
         budget_factory=lambda: DistanceBudget(max_expansions=MAX_EXPANSIONS),
         on_seed=account,
+        workers=workers,
         **kwargs,
     )
     return routes, {
@@ -343,6 +345,12 @@ def main() -> None:
     parser.add_argument("--overpass-cache", default=".cache/phase1b-live/oisans-overpass.json")
     parser.add_argument("--elevations", default=".cache/phase2/elevations.json")
     parser.add_argument("--output", default="outputs/phase3")
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="processes for the regional walk; the ranking is identical either way",
+    )
     arguments = parser.parse_args()
 
     started = time.monotonic()
@@ -364,7 +372,7 @@ def main() -> None:
         graphs[scenario] = graph
         profile_sets[scenario] = profiles
         # `top` is already the exact ranking, not a pool waiting to be filtered.
-        top, stats = run_search(graph, profiles)
+        top, stats = run_search(graph, profiles, workers=arguments.workers)
         tops[scenario] = top
         # The ranking is twenty routes, far too few to describe how the region
         # behaves. The distribution below is over the best route of every seed,
