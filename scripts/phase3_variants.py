@@ -44,10 +44,14 @@ PRODUCTION_METHOD = "raw_25m"
 # Phase A2 graph, where a structure shorter than one production segment carries
 # a roadway interpolated between the two admitted edges it joins.
 #
-# Both are published. The improvement is only legible as a pair: a larger number
-# alone is indistinguishable from a looser model, while the two side by side show
-# routes moving from `model_gap` to `physical_stop`.
+# Both are published, reconstructed first. The improvement is only legible as a
+# pair — a larger number alone is indistinguishable from a looser model, while
+# the two side by side show routes moving from `model_gap` to `physical_stop` —
+# but the current state of the graph belongs at the top, or a reader meets a
+# superseded figure before the one that replaced it.
 VARIANTS = (
+    ("paved_reference", False, "outputs/phase_a2/regional_before_after.csv", "reconstructed"),
+    ("reference_vtc", False, "outputs/phase_a2/regional_before_after.csv", "reconstructed"),
     ("paved_reference", False, "outputs/phase3/candidate_routes.csv", "severed"),
     (
         "paved_reference",
@@ -57,8 +61,6 @@ VARIANTS = (
     ),
     ("reference_vtc", False, "outputs/phase3/candidate_routes.csv", "severed"),
     ("reference_vtc", True, "outputs/phase3/cycle_rule_comparison_reference_vtc.csv", "severed"),
-    ("paved_reference", False, "outputs/phase_a2/regional_before_after.csv", "reconstructed"),
-    ("reference_vtc", False, "outputs/phase_a2/regional_before_after.csv", "reconstructed"),
 )
 
 
@@ -298,6 +300,14 @@ def main() -> None:
         ),
         "phase": "Phase A - validation regionale Oisans",
         "scope": "Oisans extract only. No national claim; the national search has not started.",
+        "graphs": {
+            "reconstructed": "current. A structure shorter than one production profile segment "
+            "carries a roadway interpolated between the two admitted edges it joins "
+            "(Phase A2 case 1). No terrain sample is ever read on a structure.",
+            "severed": "superseded. A structure with no roadway elevation produced no edge at "
+            "all, so the road it belonged to was cut. Kept published because the improvement "
+            "is only legible against it.",
+        },
         "commit": commit,
         "initial_speed_km_h": 15.0,
         "elevation_method": PRODUCTION_METHOD,
