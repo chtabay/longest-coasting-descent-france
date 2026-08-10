@@ -152,14 +152,28 @@ def piece_sample_points(geometry: Sequence[tuple[float, float]]) -> tuple[Sample
     return sample_polyline(geometry, BASE_SPACING_M, keep_vertex_above_deg=KEEP_VERTEX_ABOVE_DEG)
 
 
-def admitted_forward_edges(osm: dict, scenario: str) -> tuple[OSMDirectedGeometry, ...]:
-    """Forward ways that the scenario admits and whose elevation is knowable."""
+def admitted_forward_edges(
+    osm: dict,
+    scenario: str,
+    reconstructable_structures: frozenset[int] | None = None,
+) -> tuple[OSMDirectedGeometry, ...]:
+    """Forward ways that the scenario admits and whose elevation is knowable.
+
+    A structure is excluded by default, because a terrain model does not
+    describe a deck or a bore and reading it there invents a grade. That rule is
+    unchanged. What ``reconstructable_structures`` adds is the Phase A2 case-1
+    exception: way ids whose roadway can be reconstructed by interpolation
+    between two admitted edges, and which therefore no longer have to be deleted
+    to keep the altimetry honest. See :mod:`coastdown.structures`; the caller
+    supplies the set, so nothing here can admit a structure by accident.
+    """
     admitted = SCENARIO_ADMITS[scenario]
+    permitted = reconstructable_structures or frozenset()
     return tuple(
         edge
         for edge in parse_osm_directed_edges(osm)
         if edge.direction == "forward"
-        and edge.structure_status is StructureStatus.NORMAL
+        and (edge.structure_status is StructureStatus.NORMAL or edge.osm_way_id in permitted)
         and assess_usability(dict(edge.tags)).usability in admitted
     )
 
@@ -188,11 +202,17 @@ SPLITTING_SCENARIO = "extended_vtc"
 
 
 def build_graph(
-    osm: dict, scenario: str, *, splitting_scenario: str = SPLITTING_SCENARIO
+    osm: dict,
+    scenario: str,
+    *,
+    splitting_scenario: str = SPLITTING_SCENARIO,
+    reconstructable_structures: frozenset[int] | None = None,
 ) -> RoutableGraph:
     """Assemble the directed, restriction-aware graph for one usability scenario."""
-    junctions = junction_node_ids(admitted_forward_edges(osm, splitting_scenario))
-    forward = admitted_forward_edges(osm, scenario)
+    junctions = junction_node_ids(
+        admitted_forward_edges(osm, splitting_scenario, reconstructable_structures)
+    )
+    forward = admitted_forward_edges(osm, scenario, reconstructable_structures)
 
     edges: dict[str, GraphEdge] = {}
     outgoing: dict[int, list[str]] = defaultdict(list)
