@@ -1,7 +1,19 @@
 # Phase A2 — Graph continuity across structures
 
-**Status: mission statement only. Nothing here is implemented, and the Phase 1B rule is
-unchanged until this phase is opened deliberately.**
+**Status: case 1 implemented and measured. Cases 2 and 3 remain open. The Phase 1B rule is
+unchanged and no terrain sample is read on any structure.**
+
+Case 1 result, on the same region with the same physics and the same engine
+(`outputs/phase_a2/regional_before_after.json`):
+
+| | `paved_reference` | `reference_vtc` |
+|---|---|---|
+| Leader | 4 494.8 m -> **4 535.7 m** | >= 6 291.2 m -> **8 453.8 m** |
+| Termination | physical stop -> physical stop | **model gap -> physical stop** |
+| Physical stops in the top 20 | **13 -> 20** | **10 -> 20** |
+
+Not one route in either published ranking is a lower bound any more. The 8.3 m D 211 underpass
+alone was hiding 2 162.6 m.
 
 ## Why this phase exists
 

@@ -1,0 +1,163 @@
+{
+  "max_expansions_per_seed": 50000,
+  "phase": "A2 - structure continuity, case 1 only",
+  "rule": "no terrain sample is read on any structure in either run; the reconstructed run interpolates a roadway between two admitted edges, and only for structures shorter than one production profile segment",
+  "scenarios": {
+    "paved_reference": {
+      "after": {
+        "expansions": 18523,
+        "graph_edges": 2486,
+        "leader": {
+          "distance_label": "4535.7 m",
+          "distance_m": 4535.7,
+          "edge_ids": "osm-105307283-2-reverse;osm-105310862-0-forward;osm-105310862-1-forward;osm-119437611-0-forward;osm-264130580-1-forward;osm-264130580-2-forward;osm-724634109-0-forward;osm-724634109-1-forward;osm-724634109-2-forward;osm-724634109-3-forward;osm-724634109-4-forward;osm-724634109-5-forward;osm-1462422580-0-forward;osm-1462422580-1-forward;osm-1462422580-2-forward;osm-264100584-0-forward;osm-264100584-1-forward;osm-264100584-2-forward;osm-28437435-0-forward;osm-1453146526-0-forward;osm-1453146525-0-forward;osm-264130575-0-forward;osm-264130575-1-forward;osm-264130575-2-forward;osm-1315255667-0-forward;osm-1315255667-1-forward;osm-1315255667-2-forward;osm-1462422576-0-forward;osm-1462422576-1-forward;osm-28437433-0-forward;osm-28437433-1-forward;osm-28437433-2-forward;osm-28437433-3-forward;osm-222918432-0-forward;osm-222918432-1-forward;osm-222918432-2-forward;osm-222918432-3-forward;osm-222918432-4-forward;osm-222918432-5-forward;osm-222918432-6-forward;osm-222918432-7-forward;osm-222918432-8-forward;osm-222918432-9-forward;osm-222918432-10-forward;osm-72898374-0-forward;osm-72898374-1-forward;osm-72898374-2-forward;osm-72898374-3-forward;osm-72898374-4-forward;osm-72898374-5-forward;osm-72898374-6-forward;osm-1082369795-0-forward;osm-1082369795-1-forward;osm-1082369795-2-forward;osm-1082369794-0-forward",
+          "edges_used": 55,
+          "elapsed_time_s": 447.6,
+          "max_speed_km_h": 60.1,
+          "net_dz_m": -428.8,
+          "termination_detail": "speed reached zero and no segment could restart the bicycle",
+          "termination_status": "physical_stop"
+        },
+        "physical_stops": 20,
+        "runtime_s": 55.7,
+        "seeds": 2440,
+        "seeds_with_exhausted_budget": 0,
+        "simulable_edges": 2440,
+        "termination_counts": {
+          "physical_stop": 20
+        }
+      },
+      "before": {
+        "expansions": 16877,
+        "graph_edges": 2429,
+        "leader": {
+          "distance_label": "4494.8 m",
+          "distance_m": 4494.8,
+          "edge_ids": "osm-49164994-0-forward;osm-49164994-1-forward;osm-49164994-2-forward;osm-186907705-1-forward;osm-935439941-0-forward;osm-187059537-0-forward;osm-187059537-1-forward;osm-187059537-2-forward;osm-186901645-1-reverse;osm-186901645-0-reverse;osm-186901646-3-reverse;osm-186901646-2-reverse;osm-186901646-1-reverse;osm-186901646-0-reverse;osm-760412724-0-forward;osm-760412724-1-forward;osm-760412724-2-forward;osm-222919304-0-forward",
+          "edges_used": 18,
+          "elapsed_time_s": 490.5,
+          "max_speed_km_h": 55.1,
+          "net_dz_m": -280.3,
+          "termination_detail": "speed reached zero and no segment could restart the bicycle",
+          "termination_status": "physical_stop"
+        },
+        "physical_stops": 13,
+        "runtime_s": 40.1,
+        "seeds": 2383,
+        "seeds_with_exhausted_budget": 0,
+        "simulable_edges": 2383,
+        "termination_counts": {
+          "model_gap": 7,
+          "physical_stop": 13
+        }
+      },
+      "leader_became_complete": false,
+      "leader_change_m": 40.9,
+      "leader_relative_change": 0.0091,
+      "reconstructable_ways": 39,
+      "reconstructed_edges": 57,
+      "structures": {
+        "by_case": {
+          "case1_short_interpolated": {
+            "metres": 526.1,
+            "ways": 39
+          },
+          "case2_needs_roadway_source": {
+            "metres": 8547.6,
+            "ways": 74
+          },
+          "case3_indeterminate": {
+            "metres": 1757.3,
+            "ways": 160
+          }
+        },
+        "by_trigger": {
+          "bridge": 179,
+          "covered": 17,
+          "layer": 17,
+          "tunnel": 60
+        },
+        "structures": 273,
+        "total_metres": 10831.0
+      }
+    },
+    "reference_vtc": {
+      "after": {
+        "expansions": 265310,
+        "graph_edges": 4026,
+        "leader": {
+          "distance_label": "8453.8 m",
+          "distance_m": 8453.8,
+          "edge_ids": "osm-905950459-0-forward;osm-905950459-1-forward;osm-905944758-0-forward;osm-1082699911-0-forward;osm-905944753-0-forward;osm-905944752-0-forward;osm-234171512-0-forward;osm-40188688-0-forward;osm-222918435-0-forward;osm-1306494913-0-forward;osm-1306494907-0-forward;osm-264100535-0-forward;osm-264100535-1-forward;osm-264100535-2-forward;osm-264100535-3-forward;osm-264100535-4-forward;osm-264100535-5-forward;osm-264100535-6-forward;osm-264100533-0-forward;osm-1040486385-0-forward;osm-1040486390-0-forward;osm-28476170-1-reverse;osm-91229843-6-reverse;osm-1054770671-0-forward;osm-1054770671-1-forward;osm-28476168-2-forward;osm-28476168-3-forward;osm-28476168-4-forward;osm-119740916-0-forward;osm-119740916-1-forward;osm-28429105-0-forward;osm-1054770672-0-forward;osm-28429107-0-forward;osm-28429107-1-forward;osm-28429107-2-forward;osm-28429107-3-forward;osm-28429107-4-forward;osm-28429107-5-forward;osm-1112039601-0-forward;osm-119437608-0-forward;osm-724628366-0-forward;osm-264130580-0-forward;osm-93964270-0-forward;osm-105506488-2-reverse;osm-105506488-1-reverse;osm-93964252-1-reverse;osm-93964252-0-reverse;osm-1054770663-0-forward;osm-1054770667-0-forward;osm-264100532-0-forward;osm-105500354-0-forward;osm-1010059118-0-forward;osm-105500342-0-reverse;osm-724634109-5-forward;osm-1462422580-0-forward;osm-1462422580-1-forward;osm-1462422580-2-forward;osm-264100584-0-forward;osm-264100584-1-forward;osm-264100584-2-forward;osm-28437435-0-forward;osm-1453146526-0-forward;osm-1453146525-0-forward;osm-264130575-0-forward;osm-264130575-1-forward;osm-264130575-2-forward;osm-1315255667-0-forward;osm-1315255667-1-forward;osm-1315255667-2-forward;osm-1462422576-0-forward;osm-1462422576-1-forward;osm-28437433-0-forward;osm-28437433-1-forward;osm-28437433-2-forward;osm-28437433-3-forward;osm-222918432-0-forward;osm-222918432-1-forward;osm-222918432-2-forward;osm-222918432-3-forward;osm-222918432-4-forward;osm-222918432-5-forward;osm-222918432-6-forward;osm-222918432-7-forward;osm-222918432-8-forward;osm-222918432-9-forward;osm-222918432-10-forward;osm-72898374-0-forward;osm-72898374-1-forward;osm-72898374-2-forward;osm-72898374-3-forward;osm-72898374-4-forward;osm-72898374-5-forward;osm-72898374-6-forward;osm-1082369795-0-forward;osm-1082369795-1-forward;osm-1082369795-2-forward;osm-1082369794-0-forward",
+          "edges_used": 97,
+          "elapsed_time_s": 938.3,
+          "max_speed_km_h": 68.3,
+          "net_dz_m": -644.2,
+          "termination_detail": "speed reached zero and no segment could restart the bicycle",
+          "termination_status": "physical_stop"
+        },
+        "physical_stops": 20,
+        "runtime_s": 4431.1,
+        "seeds": 3958,
+        "seeds_with_exhausted_budget": 0,
+        "simulable_edges": 3958,
+        "termination_counts": {
+          "physical_stop": 20
+        }
+      },
+      "before": {
+        "expansions": 155649,
+        "graph_edges": 3919,
+        "leader": {
+          "distance_label": ">= 6291.2 m",
+          "distance_m": 6291.2,
+          "edge_ids": "osm-905950459-0-forward;osm-905950459-1-forward;osm-905944758-0-forward;osm-1082699911-0-forward;osm-905944753-0-forward;osm-905944752-0-forward;osm-234171512-0-forward;osm-40188688-0-forward;osm-222918435-0-forward;osm-1306494913-0-forward;osm-1306494907-0-forward;osm-264100535-0-forward;osm-264100535-1-forward;osm-264100535-2-forward;osm-264100535-3-forward;osm-264100535-4-forward;osm-264100535-5-forward;osm-264100535-6-forward;osm-264100533-0-forward;osm-1040486385-0-forward;osm-1040486390-0-forward;osm-28476170-1-reverse;osm-91229843-6-reverse;osm-1054770671-0-forward;osm-1054770671-1-forward;osm-28476168-2-forward;osm-28476168-3-forward;osm-28476168-4-forward;osm-119740916-0-forward;osm-119740916-1-forward;osm-28429105-0-forward;osm-1054770672-0-forward;osm-28429107-0-forward;osm-28429107-1-forward;osm-28429107-2-forward;osm-28429107-3-forward;osm-28429107-4-forward;osm-28429107-5-forward;osm-1112039601-0-forward;osm-119437608-0-forward;osm-724628366-0-forward;osm-264130580-0-forward;osm-93964270-0-forward;osm-105506488-2-reverse;osm-105506488-1-reverse;osm-93964252-1-reverse;osm-93964252-0-reverse;osm-1054770663-0-forward;osm-1054770667-0-forward;osm-264100532-0-forward;osm-105500354-0-forward;osm-1010059118-0-forward;osm-105500342-0-reverse;osm-724634109-5-forward;osm-1462422580-0-forward;osm-1462422580-1-forward;osm-1462422580-2-forward;osm-264100584-0-forward;osm-264100584-1-forward;osm-264100584-2-forward;osm-28437435-0-forward",
+          "edges_used": 61,
+          "elapsed_time_s": 710.7,
+          "max_speed_km_h": 68.3,
+          "net_dz_m": -443.3,
+          "termination_detail": "OSM way(s) 1453146526 still run through node 13326635869; the pipeline admitted no edge for them",
+          "termination_status": "model_gap"
+        },
+        "physical_stops": 10,
+        "runtime_s": 1311.4,
+        "seeds": 3851,
+        "seeds_with_exhausted_budget": 0,
+        "simulable_edges": 3851,
+        "termination_counts": {
+          "model_gap": 10,
+          "physical_stop": 10
+        }
+      },
+      "leader_became_complete": true,
+      "leader_change_m": 2162.6,
+      "leader_relative_change": 0.3437,
+      "reconstructable_ways": 56,
+      "reconstructed_edges": 107,
+      "structures": {
+        "by_case": {
+          "case1_short_interpolated": {
+            "metres": 734.8,
+            "ways": 56
+          },
+          "case2_needs_roadway_source": {
+            "metres": 8547.6,
+            "ways": 74
+          },
+          "case3_indeterminate": {
+            "metres": 1548.6,
+            "ways": 143
+          }
+        },
+        "by_trigger": {
+          "bridge": 179,
+          "covered": 17,
+          "layer": 17,
+          "tunnel": 60
+        },
+        "structures": 273,
+        "total_metres": 10831.0
+      }
+    }
+  }
+}

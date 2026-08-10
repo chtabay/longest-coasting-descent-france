@@ -32,16 +32,33 @@ from coastdown.elevation_store import elevations_for, load_store
 from coastdown.graph import RoutableGraph, build_graph
 from coastdown.models import BicycleSystem, Environment
 from coastdown.search import EdgeProfile, build_edge_profile
+from coastdown.structures import build_with_reconstructed_structures
 from coastdown.termination import classify, node_way_index
 from coastdown.textio import write_text_lf
 
 PRODUCTION_METHOD = "raw_25m"
 
+# (scenario, allow_cycles, source, graph) — `graph` selects which road network
+# the routes were found on. "severed" is the Phase A graph, where a structure
+# with no roadway elevation produced no edge at all; "reconstructed" is the
+# Phase A2 graph, where a structure shorter than one production segment carries
+# a roadway interpolated between the two admitted edges it joins.
+#
+# Both are published. The improvement is only legible as a pair: a larger number
+# alone is indistinguishable from a looser model, while the two side by side show
+# routes moving from `model_gap` to `physical_stop`.
 VARIANTS = (
-    ("paved_reference", False, "outputs/phase3/candidate_routes.csv"),
-    ("paved_reference", True, "outputs/phase3/cycle_rule_comparison_paved_reference.csv"),
-    ("reference_vtc", False, "outputs/phase3/candidate_routes.csv"),
-    ("reference_vtc", True, "outputs/phase3/cycle_rule_comparison_reference_vtc.csv"),
+    ("paved_reference", False, "outputs/phase3/candidate_routes.csv", "severed"),
+    (
+        "paved_reference",
+        True,
+        "outputs/phase3/cycle_rule_comparison_paved_reference.csv",
+        "severed",
+    ),
+    ("reference_vtc", False, "outputs/phase3/candidate_routes.csv", "severed"),
+    ("reference_vtc", True, "outputs/phase3/cycle_rule_comparison_reference_vtc.csv", "severed"),
+    ("paved_reference", False, "outputs/phase_a2/regional_before_after.csv", "reconstructed"),
+    ("reference_vtc", False, "outputs/phase_a2/regional_before_after.csv", "reconstructed"),
 )
 
 
@@ -61,7 +78,7 @@ def build_profiles(graph: RoutableGraph, store: dict[str, float]) -> dict[str, E
     return profiles
 
 
-def read_ranking(path: Path, scenario: str, allow_cycles: bool) -> list[list[str]]:
+def read_ranking(path: Path, scenario: str, allow_cycles: bool, graph_kind: str) -> list[list[str]]:
     """Ordered edge-id lists for one variant, straight from the run that made it."""
     if not path.exists():
         return []
@@ -72,8 +89,14 @@ def read_ranking(path: Path, scenario: str, allow_cycles: bool) -> list[list[str
     if "trip_definition" in (rows[0] if rows else {}):
         wanted = "cycles_allowed" if allow_cycles else "once_per_way_piece"
         rows = [row for row in rows if row["trip_definition"] == wanted]
+    # The before/after file carries both rankings side by side; the column tells
+    # which graph a row belongs to, so neither can be read as the other.
+    column = "after_edge_ids" if "after_edge_ids" in (rows[0] if rows else {}) else "edge_ids"
+    if column == "after_edge_ids" and graph_kind != "reconstructed":
+        column = "before_edge_ids"
+    rows = [row for row in rows if row.get(column)]
     rows.sort(key=lambda row: int(row["rank"]))
-    return [row["edge_ids"].split(";") for row in rows]
+    return [row[column].split(";") for row in rows]
 
 
 def describe(
@@ -165,26 +188,33 @@ def main() -> None:
     store = load_store(arguments.elevations)
     node_ways = node_way_index(osm)
 
-    graphs: dict[str, RoutableGraph] = {}
-    profile_sets: dict[str, dict[str, EdgeProfile]] = {}
+    graphs: dict[tuple[str, str], RoutableGraph] = {}
+    profile_sets: dict[tuple[str, str], dict[str, EdgeProfile]] = {}
     for scenario in ("paved_reference", "reference_vtc"):
-        graphs[scenario] = build_graph(osm, scenario)
-        profile_sets[scenario] = build_profiles(graphs[scenario], store)
+        graphs[scenario, "severed"] = build_graph(osm, scenario)
+        profile_sets[scenario, "severed"] = build_profiles(graphs[scenario, "severed"], store)
+        rebuilt, rebuilt_profiles, _, _ = build_with_reconstructed_structures(
+            osm, scenario, store, method=PRODUCTION_METHOD
+        )
+        graphs[scenario, "reconstructed"] = rebuilt
+        profile_sets[scenario, "reconstructed"] = rebuilt_profiles
 
     commit = subprocess.run(
         ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False
     ).stdout.strip()
 
     variants: list[dict[str, object]] = []
-    for scenario, allow_cycles, source in VARIANTS:
-        ranking = read_ranking(Path(source), scenario, allow_cycles)
+    for scenario, allow_cycles, source, graph_kind in VARIANTS:
+        ranking = read_ranking(Path(source), scenario, allow_cycles, graph_kind)
         if not ranking:
             print(f"skipping {scenario} cycles={allow_cycles}: {source} has no rows", flush=True)
             continue
-        graph = graphs[scenario]
-        profiles = profile_sets[scenario]
+        graph = graphs[scenario, graph_kind]
+        profiles = profile_sets[scenario, graph_kind]
         described = [describe(graph, profiles, edge_ids, node_ways) for edge_ids in ranking]
         key = f"{scenario}__{'cycles' if allow_cycles else 'no_cycles'}"
+        if graph_kind == "reconstructed":
+            key += "__reconstructed"
         # Asset paths are generated too: the page must not know how `outputs/`
         # is laid out, or that layout becomes a second source of truth.
         #
@@ -215,6 +245,14 @@ def main() -> None:
                 "assets": assets,
                 "scenario": scenario,
                 "allow_cycles": allow_cycles,
+                "graph": graph_kind,
+                "graph_note": (
+                    "short structures carry a roadway interpolated between the admitted "
+                    "edges they join (Phase A2 case 1)"
+                    if graph_kind == "reconstructed"
+                    else "a structure with no roadway elevation produces no edge, so the "
+                    "road it belongs to is severed (Phase A)"
+                ),
                 "trip_rule": (
                     "repetition allowed"
                     if allow_cycles
@@ -247,6 +285,7 @@ def main() -> None:
                     ";".join(leader["edge_ids"]),  # type: ignore[arg-type]
                     "--label",
                     key,
+                    *(["--reconstructed"] if graph_kind == "reconstructed" else []),
                 ],
                 check=True,
             )

@@ -1,0 +1,152 @@
+{
+  "bends": {
+    "binding_segments": 38,
+    "braking_distance_m": 590.3,
+    "braking_substeps": 1632
+  },
+  "distinct_ways": 18,
+  "edge_ids": [
+    "osm-105307283-2-reverse",
+    "osm-105310862-0-forward",
+    "osm-105310862-1-forward",
+    "osm-119437611-0-forward",
+    "osm-264130580-1-forward",
+    "osm-264130580-2-forward",
+    "osm-724634109-0-forward",
+    "osm-724634109-1-forward",
+    "osm-724634109-2-forward",
+    "osm-724634109-3-forward",
+    "osm-724634109-4-forward",
+    "osm-724634109-5-forward",
+    "osm-1462422580-0-forward",
+    "osm-1462422580-1-forward",
+    "osm-1462422580-2-forward",
+    "osm-264100584-0-forward",
+    "osm-264100584-1-forward",
+    "osm-264100584-2-forward",
+    "osm-28437435-0-forward",
+    "osm-1453146526-0-forward",
+    "osm-1453146525-0-forward",
+    "osm-264130575-0-forward",
+    "osm-264130575-1-forward",
+    "osm-264130575-2-forward",
+    "osm-1315255667-0-forward",
+    "osm-1315255667-1-forward",
+    "osm-1315255667-2-forward",
+    "osm-1462422576-0-forward",
+    "osm-1462422576-1-forward",
+    "osm-28437433-0-forward",
+    "osm-28437433-1-forward",
+    "osm-28437433-2-forward",
+    "osm-28437433-3-forward",
+    "osm-222918432-0-forward",
+    "osm-222918432-1-forward",
+    "osm-222918432-2-forward",
+    "osm-222918432-3-forward",
+    "osm-222918432-4-forward",
+    "osm-222918432-5-forward",
+    "osm-222918432-6-forward",
+    "osm-222918432-7-forward",
+    "osm-222918432-8-forward",
+    "osm-222918432-9-forward",
+    "osm-222918432-10-forward",
+    "osm-72898374-0-forward",
+    "osm-72898374-1-forward",
+    "osm-72898374-2-forward",
+    "osm-72898374-3-forward",
+    "osm-72898374-4-forward",
+    "osm-72898374-5-forward",
+    "osm-72898374-6-forward",
+    "osm-1082369795-0-forward",
+    "osm-1082369795-1-forward",
+    "osm-1082369795-2-forward",
+    "osm-1082369794-0-forward"
+  ],
+  "edges_used": 55,
+  "energy_j": {
+    "braking_dissipated_j": 109431.0,
+    "drag_dissipated_j": 212104.6,
+    "final_kinetic_j": 0.0,
+    "gravity_released_j": 344664.9,
+    "initial_kinetic_j": 794.3,
+    "residual_j": 26.0,
+    "residual_relative": 0.0,
+    "rolling_dissipated_j": 23897.5,
+    "total_consumed_j": 345433.1,
+    "total_supplied_j": 345459.1
+  },
+  "geometry": {
+    "ascent_m": 9.8,
+    "descent_m": 438.64,
+    "end_elevation_m": 1399.07,
+    "end_lat": 45.07818,
+    "end_lon": 6.054085,
+    "net_dz_m": -428.84,
+    "start_elevation_m": 1827.91,
+    "start_lat": 45.093237,
+    "start_lon": 6.067371
+  },
+  "kinematics": {
+    "distance_m": 4535.75,
+    "elapsed_time_s": 447.6,
+    "final_speed_km_h": 0.0,
+    "max_free_speed_km_h": 60.18,
+    "max_speed_km_h": 60.14,
+    "mean_speed_km_h": 36.48,
+    "min_speed_before_stop_km_h": 0.14,
+    "moving_time_s": 447.6,
+    "restart_count": 0
+  },
+  "osm_way_ids": [
+    28437433,
+    28437435,
+    72898374,
+    105307283,
+    105310862,
+    119437611,
+    222918432,
+    264100584,
+    264130575,
+    264130580,
+    724634109,
+    1082369794,
+    1082369795,
+    1315255667,
+    1453146525,
+    1453146526,
+    1462422576,
+    1462422580
+  ],
+  "rank": 1,
+  "scenario": "paved_reference",
+  "structures": {
+    "bridges": [],
+    "covered": [],
+    "metres_by_status": {
+      "normal": 4897.6,
+      "stacked": 8.3
+    },
+    "non_zero_layer": [
+      "osm-1453146526-0-forward"
+    ],
+    "tracks": [],
+    "tunnels": [],
+    "unpaved": []
+  },
+  "surface": {
+    "explicitly_tagged_asphalt_share": 1.0,
+    "inferred_share": 0.0,
+    "metres_by_class": {
+      "asphalt_good": 4906.0
+    },
+    "share_by_class": {
+      "asphalt_good": 1.0
+    }
+  },
+  "termination": {
+    "energy_limited": true,
+    "reading": "the bicycle ran out of energy where the road still continued",
+    "search_termination": "definitive_stop",
+    "stop_reason": "definitive_stop"
+  }
+}

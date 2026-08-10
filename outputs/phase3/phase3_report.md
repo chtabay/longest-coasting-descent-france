@@ -613,6 +613,53 @@ scenario has a single `network_boundary` route.** Every truncation in this regio
 pipeline removed, not the edge of the download — which is what makes §9.1's structure reservation
 the dominant one and not a footnote.
 
+## 9quater. Phase A2 case 1: what the severed graph was hiding
+
+The Phase 1B rule stands and was not relaxed. What changed is the other half of the old behaviour:
+a structure with no roadway elevation no longer produces *no edge at all*. Where a structure is
+shorter than one production profile segment and joins two admitted edges, it now carries a roadway
+**interpolated between those two edges** — never a terrain sample. See
+`docs/11_phase_a2_structure_continuity.md` and `outputs/phase_a2/`.
+
+### The same region, the same physics, the same engine, run twice
+
+| | `paved_reference` | `reference_vtc` |
+|---|---|---|
+| Leader before | 4 494.8 m — physical stop | ≥ 6 291.2 m — **model gap** |
+| Leader after | **4 535.7 m** — physical stop | **8 453.8 m** — **physical stop** |
+| Change | +40.9 m (+0.91 %) | **+2 162.6 m (+34.4 %)** |
+| Leader edges | 18 → 55 | 61 → 97 |
+| Leader net Δz | −280.3 → −428.8 m | −443.3 → −644.2 m |
+| **Physical stops in the top 20** | **13 → 20** | **10 → 20** |
+| Graph edges | 2 429 → 2 486 | 3 919 → 4 026 |
+| Seeds | 2 383 → 2 440 | 3 851 → 3 958 |
+| Budget-limited seeds | 0 → 0 | 0 → 0 |
+
+**Not one route in either published ranking is a lower bound any more.** That, rather than the
+distance, is the result: before, 17 of the 40 ranked routes ended where the model ran out of road;
+now every one of the 40 ends where the bicycle runs out of energy.
+
+The VTC record is no longer `≥`. It is **8 453.8 m**, and it stops.
+
+### What the two scenarios say separately
+
+The paved leader gains almost nothing in distance (+0.91 %) but changes route completely — 18 edges
+to 55, and nearly half again as much descent. Its old route already stopped physically, so it had
+no truncation to recover; what it gained was *access*, and a different corridor now wins by a
+margin small enough to be inside the model's other uncertainties. Both new leaders run through the
+same D 211 underpass.
+
+The VTC leader gains a third of its length. That is the corridor §4.1 identified: it was leaving
+the graph at 56.8 km/h on a −9.5 % grade, and 8.3 m of missing roadway were hiding 2.16 km.
+
+### What is still severed
+
+Case 1 admits 39 ways on the paved graph and 56 on the hybrid one — 526 m and 735 m of the 11 km
+of structure in the extract. The remaining **8.7 km sit in case 2**, needing a source that
+describes the deck rather than the ground, and the rest are indeterminate. So the graph is more
+complete than it was and is still not the road: a viaduct is exactly the kind of long, gently
+graded structure a maximum-distance route would love to cross, and none of them is admitted.
+
 ## 9ter. Phase A verdict
 
 Two conclusions, deliberately separated. They point in opposite directions and merging them would
@@ -665,6 +712,12 @@ rule here.
 
 **Verdict: the algorithmic result is sound and the physical coverage is not.** Phase A closes on
 the first and hands the second to A2.
+
+**Update after A2 case 1 (§9quater).** The second half is now *partly* closed. Every route in both
+published rankings ends in a physical stop, so no ranked figure is a lower bound any longer. But
+8.7 km of structure — every bridge and tunnel longer than one profile segment — still produces no
+edge, and those are precisely the long, gently graded crossings a maximum-distance route would use.
+The coverage reservation is reduced, not lifted.
 
 ## 10bis. The regional walk now uses every core
 
