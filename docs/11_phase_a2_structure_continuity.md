@@ -202,3 +202,33 @@ measurements and which are bounds.
 
 The national search. This phase is about whether the graph describes the road, which has to be
 settled before the size of the graph becomes the problem.
+
+## What this phase found about its own importance
+
+Phase A2 was opened because structures were "the largest error term in the current results". Case 1
+justified that: the hybrid record went from a `>= 6291.2 m` lower bound to a real 8 453.8 m physical
+stop, because 8.3 m of missing roadway had severed a corridor. Connectivity mattered far more than
+length.
+
+But with case 1 done and case 2 measured as worthless, the graph was audited again to see what is
+still missing, by class rather than by assumption:
+
+| what the `reference_vtc` graph does not contain | length |
+|---|---:|
+| **`review` — no explicit bicycle tag, neither admitted nor refused** | **555.95 km** |
+| `excluded` — genuinely not rideable | 253.86 km |
+| `extended_vtc` — a broader scenario this one does not admit | 40.68 km |
+| **structures — the whole subject of this phase** | **10.83 km** |
+| *(admitted network, for scale)* | *324.96 km* |
+
+**The `review` class is 1.7 times the entire admitted network, and fifty times the structures.**
+Phase A2 was working on the smallest of the gaps. That does not make it wrong — a small gap in the
+wrong place cost 2.16 km of the record — but it does mean the dominant remaining uncertainty in
+physical coverage is not altimetric at all. It is a question about access: whether a way with no
+explicit bicycle tag may be ridden.
+
+The same upper-bound method applies and would answer it cheaply: admit `review`, rank, and see
+whether the ceiling moves. That measurement is not made here, because admitting those ways changes
+what the study means by a rideable road — a definitional decision like the trip rule, not a
+modelling one.
+
