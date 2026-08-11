@@ -115,7 +115,39 @@ Open questions to settle before implementing: what maximum length qualifies as "
 should be absolute or relative to the elevation sampling, and what makes an approach "reliable" —
 at minimum both ends admitted, simulable, and not themselves structures.
 
-### 2. Long structure with its own altimetric information — use a source that describes the deck
+### 2. Long structure with its own altimetric information — MEASURED AS WORTHLESS HERE
+
+> **Result: on this extract, case 2 buys nothing.** Before acquiring a source, the ceiling was
+> measured (`scripts/phase_a2_upper_bound.py`): every structure whose two ends touch the profiled
+> graph was given a **straight** deck, whatever its length. A straight deck is the cheapest a
+> structure can have — between two fixed endpoints every deck has the same net elevation change,
+> so gravity gives the same energy, and any departure from a straight line adds a rise and a
+> matching fall that lengthen the path and charge rolling resistance and drag over the extra
+> distance. No real deck can beat it.
+>
+> | | case 1 result | ceiling with every attachable deck straight |
+> |---|---:|---:|
+> | `paved_reference` | 4 535.7 m | **4 535.7 m** |
+> | `reference_vtc` | 8 453.8 m | **8 453.8 m** |
+>
+> Identical to the metre, same route, on both scenarios. That covers 17 long paved ways (1.86 km)
+> and 25 long hybrid ways (2.46 km), **including a 620 m bridge, a 295 m bridge and a 229 m
+> tunnel**. Not one of them is worth anything to a maximum-distance route.
+>
+> **What this does not cover.** 217 paved and 192 hybrid structures — 8.45 km and 7.64 km — cannot
+> be attached at all, because at least one end touches no admitted, simulable edge. Of the hybrid
+> ones, **30 form chains** with another structure and **162 are orphans** whose missing end no
+> structure touches, so the road there is absent or unusable for a different reason. Iterating the
+> reconstruction would attach the 30 chained ones, and this study declines to: it would mean
+> interpolating a roadway from another reconstructed roadway rather than from measured road,
+> compounding uncertainty for a gain the measurement above shows to be zero.
+>
+> **Conclusion: do not acquire a deck-elevation source for this region.** Revisit only if a future
+> extract shows attachable long structures that do change a ranking.
+
+The original statement of the case follows, since a future region may answer differently.
+
+#### Original statement — use a source that describes the deck
 
 A viaduct or a tunnel of real length cannot be interpolated: its profile is a design decision, not
 a straight line between its ends. Here the requirement is a source that describes **the roadway

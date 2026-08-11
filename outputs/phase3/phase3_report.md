@@ -652,13 +652,38 @@ same D 211 underpass.
 The VTC leader gains a third of its length. That is the corridor §4.1 identified: it was leaving
 the graph at 56.8 km/h on a −9.5 % grade, and 8.3 m of missing roadway were hiding 2.16 km.
 
-### What is still severed
+### What is still severed, and what that is worth — measured, not assumed
 
 Case 1 admits 39 ways on the paved graph and 56 on the hybrid one — 526 m and 735 m of the 11 km
-of structure in the extract. The remaining **8.7 km sit in case 2**, needing a source that
-describes the deck rather than the ground, and the rest are indeterminate. So the graph is more
-complete than it was and is still not the road: a viaduct is exactly the kind of long, gently
-graded structure a maximum-distance route would love to cross, and none of them is admitted.
+of structure in the extract. The obvious next thought is that the remaining 8.7 km, full of exactly
+the long gently graded viaducts a maximum-distance route would love, must be hiding something.
+
+**It is not.** Before acquiring a deck-elevation source, the ceiling was measured
+(`scripts/phase_a2_upper_bound.py`, `outputs/phase_a2/case2_upper_bound.json`): every structure
+whose two ends touch the profiled graph was given a **straight** deck, whatever its length. A
+straight deck is the cheapest one a structure can have — between two fixed endpoints every deck has
+the same net elevation change, so gravity gives the bicycle the same energy, while any departure
+from a straight line adds a rise and a matching fall that lengthen the path and charge rolling
+resistance and drag over the extra distance. No real deck can beat it.
+
+| | case 1 result | ceiling, every attachable deck straight |
+|---|---:|---:|
+| `paved_reference` | 4 535.7 m | **4 535.7 m** |
+| `reference_vtc` | 8 453.8 m | **8 453.8 m** |
+
+**Identical to the metre, same route, on both scenarios** — and that covers 17 long paved ways
+(1.86 km) and 25 long hybrid ways (2.46 km), including a **620 m bridge, a 295 m bridge and a
+229 m tunnel**. Not one of them is worth anything here.
+
+What the ceiling does *not* cover is the 8.45 km (paved) and 7.64 km (hybrid) of structure that
+cannot be attached at all, because at least one end touches no admitted simulable edge. Of the
+hybrid ones, 30 form chains with another structure and 162 are orphans whose missing end no
+structure touches. Attaching the 30 would mean interpolating a roadway from another *reconstructed*
+roadway rather than from measured road — compounding uncertainty for a gain the measurement above
+shows to be zero — so the study declines to.
+
+**The practical consequence: no deck-elevation source needs acquiring for this region.** The
+structure reservation is not closed in principle, but it is closed in value.
 
 ## 9ter. Phase A verdict
 

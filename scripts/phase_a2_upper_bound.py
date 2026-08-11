@@ -55,6 +55,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--overpass-cache", default=".cache/phase1b-live/oisans-overpass.json")
     parser.add_argument("--elevations", default=".cache/phase2/elevations.json")
+    parser.add_argument("--scenario", default="", help="one scenario, or all if empty")
     parser.add_argument("--output", default="outputs/phase_a2")
     parser.add_argument("--workers", type=int, default=8)
     arguments = parser.parse_args()
@@ -76,7 +77,7 @@ def main() -> None:
         "scenarios": {},
     }
 
-    for scenario in SCENARIOS:
+    for scenario in [arguments.scenario] if arguments.scenario else SCENARIOS:
         started = time.monotonic()
         graph, profiles, assessments, reconstructed = build_with_reconstructed_structures(
             osm, scenario, store, method=PRODUCTION_METHOD, max_span_m=NO_LENGTH_LIMIT_M
@@ -129,9 +130,14 @@ def main() -> None:
             flush=True,
         )
 
-    write_text_lf(
-        output / "case2_upper_bound.json", json.dumps(report, indent=2, sort_keys=True) + "\n"
-    )
+        # Written after every scenario rather than at the end: this run takes
+        # hours and a crash in the second scenario must not discard the first.
+        target = output / "case2_upper_bound.json"
+        merged = json.loads(target.read_text(encoding="utf-8")) if target.exists() else {}
+        merged.update({key: value for key, value in report.items() if key != "scenarios"})
+        merged.setdefault("scenarios", {}).update(report["scenarios"])
+        write_text_lf(target, json.dumps(merged, indent=2, sort_keys=True) + "\n")
+
     print(f"\nwrote {output / 'case2_upper_bound.json'} — a ceiling, not a record", flush=True)
 
 
