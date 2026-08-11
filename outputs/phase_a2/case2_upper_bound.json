@@ -35,6 +35,40 @@
       "termination_counts": {
         "physical_stop": 20
       }
+    },
+    "reference_vtc": {
+      "ceiling_distance_m": 8453.8,
+      "decked_ways": 81,
+      "graph_edges": 4082,
+      "leader_edges": 97,
+      "leader_net_dz_m": -644.2,
+      "reconstructed_edges": 153,
+      "runtime_s": 2998.4,
+      "seeds": 4004,
+      "seeds_with_exhausted_budget": 0,
+      "structures": {
+        "by_case": {
+          "case1_short_interpolated": {
+            "metres": 3195.7,
+            "ways": 81
+          },
+          "case3_indeterminate": {
+            "metres": 7635.3,
+            "ways": 192
+          }
+        },
+        "by_trigger": {
+          "bridge": 179,
+          "covered": 17,
+          "layer": 17,
+          "tunnel": 60
+        },
+        "structures": 273,
+        "total_metres": 10831.0
+      },
+      "termination_counts": {
+        "physical_stop": 20
+      }
     }
   },
   "what_this_is": "an upper bound on what case 2 could deliver, not a result; every structure with two known ends is given a straight deck, which is the cheapest deck any structure can have, so no real deck can beat these figures"
